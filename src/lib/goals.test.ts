@@ -47,6 +47,19 @@ describe("goals", () => {
     expect(found?.readingItems).toHaveLength(1);
   });
 
+  it("stores the questions the learner wants to answer", async () => {
+    const goal = await createGoal({
+      title: "Learn Rust",
+      questions: "What is ownership?",
+    });
+    expect(goal.questions).toBe("What is ownership?");
+
+    const updated = await updateGoal(goal.id, {
+      questions: "What is borrowing?",
+    });
+    expect(updated.questions).toBe("What is borrowing?");
+  });
+
   it("deletes a goal and cascades its reading items", async () => {
     const goal = await createGoal({ title: "Learn Rust" });
     const item = await createReadingItem({ goalId: goal.id, title: "The Rust Book" });

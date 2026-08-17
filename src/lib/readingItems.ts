@@ -4,6 +4,7 @@ import type { Progress } from "@/generated/prisma/client";
 export function createReadingItem(data: {
   goalId: string;
   title: string;
+  author?: string;
   url?: string;
   note?: string;
 }) {
@@ -15,6 +16,7 @@ export function createReadingItem(data: {
     data: {
       goalId: data.goalId,
       title: data.title,
+      author: data.author,
       url: data.url,
       note: data.note,
     },
@@ -30,7 +32,7 @@ export function updateReadingItemProgress(id: string, progress: Progress) {
 
 export function updateReadingItem(
   id: string,
-  data: { title?: string; url?: string; note?: string },
+  data: { title?: string; author?: string; url?: string; note?: string },
 ) {
   if (data.title !== undefined && !data.title.trim()) {
     throw new Error("Reading item title is required");

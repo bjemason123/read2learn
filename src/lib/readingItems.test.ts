@@ -37,19 +37,32 @@ describe("readingItems", () => {
     expect(notStarted.progress).toBe("NOT_STARTED");
   });
 
-  it("updates title, url, and note", async () => {
+  it("updates title, author, url, and note", async () => {
     const goal = await createGoal({ title: "Learn Rust" });
     const item = await createReadingItem({ goalId: goal.id, title: "The Rust Book" });
 
     const updated = await updateReadingItem(item.id, {
       title: "The Rust Book (2nd ed.)",
+      author: "Steve Klabnik",
       url: "https://doc.rust-lang.org/book/",
       note: "Start with ch. 4",
     });
 
     expect(updated.title).toBe("The Rust Book (2nd ed.)");
+    expect(updated.author).toBe("Steve Klabnik");
     expect(updated.url).toBe("https://doc.rust-lang.org/book/");
     expect(updated.note).toBe("Start with ch. 4");
+  });
+
+  it("stores an author when creating a reading item", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const item = await createReadingItem({
+      goalId: goal.id,
+      title: "The Rust Book",
+      author: "Steve Klabnik",
+    });
+
+    expect(item.author).toBe("Steve Klabnik");
   });
 
   it("deletes a reading item", async () => {

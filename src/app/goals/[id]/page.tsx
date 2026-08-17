@@ -47,6 +47,16 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
             defaultValue={goal.description ?? ""}
           />
         </div>
+        <div className="field">
+          <label htmlFor="questions">Questions you want to answer</label>
+          <textarea
+            id="questions"
+            name="questions"
+            rows={3}
+            placeholder="One question per line"
+            defaultValue={goal.questions ?? ""}
+          />
+        </div>
         <button type="submit">Save changes</button>
       </form>
       <form action={deleteGoalWithId}>
@@ -71,6 +81,9 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                   item.title
                 )}
               </span>
+              {item.author && (
+                <span className="item-author">by {item.author}</span>
+              )}
               <ProgressSelect
                 itemId={item.id}
                 goalId={goal.id}
@@ -94,6 +107,10 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
         <div className="field">
           <label htmlFor="item-title">Title</label>
           <input id="item-title" name="title" type="text" required />
+        </div>
+        <div className="field">
+          <label htmlFor="item-author">Author</label>
+          <input id="item-author" name="author" type="text" />
         </div>
         <div className="field">
           <label htmlFor="item-url">URL</label>

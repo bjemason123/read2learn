@@ -16,6 +16,7 @@ model Goal {
   id           String        @id @default(cuid())
   title        String
   description  String?
+  questions    String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   readingItems ReadingItem[]
@@ -30,6 +31,7 @@ enum Progress {
 model ReadingItem {
   id        String   @id @default(cuid())
   title     String
+  author    String?
   url       String?
   note      String?
   progress  Progress @default(NOT_STARTED)

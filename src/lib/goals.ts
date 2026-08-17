@@ -14,19 +14,27 @@ export function getGoal(id: string) {
   });
 }
 
-export function createGoal(data: { title: string; description?: string }) {
+export function createGoal(data: {
+  title: string;
+  description?: string;
+  questions?: string;
+}) {
   if (!data.title.trim()) {
     throw new Error("Goal title is required");
   }
 
   return prisma.goal.create({
-    data: { title: data.title, description: data.description },
+    data: {
+      title: data.title,
+      description: data.description,
+      questions: data.questions,
+    },
   });
 }
 
 export function updateGoal(
   id: string,
-  data: { title?: string; description?: string },
+  data: { title?: string; description?: string; questions?: string },
 ) {
   if (data.title !== undefined && !data.title.trim()) {
     throw new Error("Goal title is required");

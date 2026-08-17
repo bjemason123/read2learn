@@ -13,12 +13,14 @@ export async function createReadingItemAction(
   formData: FormData,
 ) {
   const title = String(formData.get("title") ?? "");
+  const author = formData.get("author");
   const url = formData.get("url");
   const note = formData.get("note");
 
   await createReadingItem({
     goalId,
     title,
+    author: author ? String(author) : undefined,
     url: url ? String(url) : undefined,
     note: note ? String(note) : undefined,
   });
