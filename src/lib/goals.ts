@@ -49,3 +49,36 @@ export function updateGoal(
 export function deleteGoal(id: string) {
   return prisma.goal.delete({ where: { id } });
 }
+
+export function parseQuestions(questions: string | null | undefined): string[] {
+  if (!questions) return [];
+  return questions
+    .split("\n")
+    .map((q) => q.trim())
+    .filter((q) => q.length > 0);
+}
+
+export async function addQuestion(id: string, question: string) {
+  if (!question.trim()) {
+    throw new Error("Question text is required");
+  }
+
+  const goal = await prisma.goal.findUniqueOrThrow({ where: { id } });
+  const questions = [...parseQuestions(goal.questions), question.trim()];
+
+  return prisma.goal.update({
+    where: { id },
+    data: { questions: questions.join("\n") },
+  });
+}
+
+export async function deleteQuestion(id: string, index: number) {
+  const goal = await prisma.goal.findUniqueOrThrow({ where: { id } });
+  const questions = parseQuestions(goal.questions);
+  questions.splice(index, 1);
+
+  return prisma.goal.update({
+    where: { id },
+    data: { questions: questions.length > 0 ? questions.join("\n") : null },
+  });
+}

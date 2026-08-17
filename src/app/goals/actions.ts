@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createGoal, deleteGoal, updateGoal } from "@/lib/goals";
+import { addQuestion, createGoal, deleteGoal, deleteQuestion, updateGoal } from "@/lib/goals";
 import { recordEvent } from "@/lib/events";
 
 export async function createGoalAction(formData: FormData) {
@@ -45,4 +45,22 @@ export async function deleteGoalAction(id: string) {
 
   revalidatePath("/");
   redirect("/");
+}
+
+export async function addQuestionAction(id: string, formData: FormData) {
+  const question = String(formData.get("question") ?? "");
+
+  await addQuestion(id, question);
+
+  await recordEvent({ type: "goal_question_added", goalId: id });
+
+  revalidatePath(`/goals/${id}`);
+}
+
+export async function deleteQuestionAction(id: string, index: number) {
+  await deleteQuestion(id, index);
+
+  await recordEvent({ type: "goal_question_deleted", goalId: id });
+
+  revalidatePath(`/goals/${id}`);
 }
