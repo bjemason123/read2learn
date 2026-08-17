@@ -6,6 +6,7 @@ import {
   deleteReadingItemAction,
 } from "./actions";
 import { ProgressSelect } from "./progress-select";
+import { recordEvent } from "@/lib/events";
 
 export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
   const { id } = await props.params;
@@ -14,6 +15,8 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
   if (!goal) {
     notFound();
   }
+
+  await recordEvent({ type: "goal_viewed", goalId: goal.id });
 
   const updateGoalWithId = updateGoalAction.bind(null, goal.id);
   const deleteGoalWithId = deleteGoalAction.bind(null, goal.id);

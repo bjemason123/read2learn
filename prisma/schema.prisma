@@ -40,3 +40,11 @@ model ReadingItem {
   goalId    String
   goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
 }
+
+model Event {
+  id            String   @id @default(cuid())
+  type          String
+  goalId        String?
+  readingItemId String?
+  createdAt     DateTime @default(now())
+}

@@ -89,4 +89,13 @@ describe("readingItems", () => {
     const goal = await createGoal({ title: "Learn Rust" });
     expect(() => createReadingItem({ goalId: goal.id, title: "  " })).toThrow();
   });
+
+  it("rejects updating a reading item with a blank title", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const item = await createReadingItem({ goalId: goal.id, title: "The Rust Book" });
+
+    expect(() => updateReadingItem(item.id, { title: "  " })).toThrow(
+      "Reading item title is required",
+    );
+  });
 });
