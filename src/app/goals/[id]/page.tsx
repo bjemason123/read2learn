@@ -1,11 +1,17 @@
 import { notFound } from "next/navigation";
-import { getGoal } from "@/lib/goals";
-import { deleteGoalAction, updateGoalAction } from "@/app/goals/actions";
+import { getGoal, parseQuestions } from "@/lib/goals";
+import {
+  addQuestionAction,
+  deleteGoalAction,
+  deleteQuestionAction,
+  updateGoalAction,
+} from "@/app/goals/actions";
 import {
   createReadingItemAction,
   deleteReadingItemAction,
 } from "./actions";
 import { ProgressSelect } from "./progress-select";
+import { recordEvent } from "@/lib/events";
 
 export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
   const { id } = await props.params;
@@ -15,12 +21,16 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
     notFound();
   }
 
+  await recordEvent({ type: "goal_viewed", goalId: goal.id });
+
   const updateGoalWithId = updateGoalAction.bind(null, goal.id);
   const deleteGoalWithId = deleteGoalAction.bind(null, goal.id);
   const createReadingItemWithGoalId = createReadingItemAction.bind(
     null,
     goal.id,
   );
+  const addQuestionWithGoalId = addQuestionAction.bind(null, goal.id);
+  const questions = parseQuestions(goal.questions);
 
   return (
     <div>
@@ -63,6 +73,33 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
         <button type="submit" className="danger">
           Delete goal
         </button>
+      </form>
+
+      <h2>Questions</h2>
+      {questions.length === 0 ? (
+        <p>No questions yet.</p>
+      ) : (
+        <ul className="item-list">
+          {questions.map((question, index) => (
+            <li key={index} className="item-row">
+              <span className="item-title">{question}</span>
+              <form
+                action={deleteQuestionAction.bind(null, goal.id, index)}
+              >
+                <button type="submit" className="danger">
+                  Delete
+                </button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form action={addQuestionWithGoalId}>
+        <div className="field">
+          <label htmlFor="question">Add a question</label>
+          <input id="question" name="question" type="text" required />
+        </div>
+        <button type="submit">Add question</button>
       </form>
 
       <h2>Reading items</h2>

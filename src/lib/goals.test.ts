@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { createGoal, deleteGoal, getGoal, listGoals, updateGoal } from "@/lib/goals";
+import {
+  addQuestion,
+  createGoal,
+  deleteGoal,
+  deleteQuestion,
+  getGoal,
+  listGoals,
+  updateGoal,
+} from "@/lib/goals";
 import { createReadingItem } from "@/lib/readingItems";
 
 beforeEach(async () => {
@@ -74,5 +82,50 @@ describe("goals", () => {
 
   it("throws when creating a goal with an empty title", () => {
     expect(() => createGoal({ title: "   " })).toThrow();
+  });
+
+  it("adds a question to a goal with no existing questions", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+
+    const updated = await addQuestion(goal.id, "What is ownership?");
+    expect(updated.questions).toBe("What is ownership?");
+  });
+
+  it("appends a question to a goal's existing questions", async () => {
+    const goal = await createGoal({
+      title: "Learn Rust",
+      questions: "What is ownership?",
+    });
+
+    const updated = await addQuestion(goal.id, "What is borrowing?");
+    expect(updated.questions).toBe("What is ownership?\nWhat is borrowing?");
+  });
+
+  it("rejects adding a blank question", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+
+    await expect(addQuestion(goal.id, "  ")).rejects.toThrow(
+      "Question text is required",
+    );
+  });
+
+  it("deletes a question by index", async () => {
+    const goal = await createGoal({
+      title: "Learn Rust",
+      questions: "What is ownership?\nWhat is borrowing?",
+    });
+
+    const updated = await deleteQuestion(goal.id, 0);
+    expect(updated.questions).toBe("What is borrowing?");
+  });
+
+  it("clears questions to null when the last one is deleted", async () => {
+    const goal = await createGoal({
+      title: "Learn Rust",
+      questions: "What is ownership?",
+    });
+
+    const updated = await deleteQuestion(goal.id, 0);
+    expect(updated.questions).toBeNull();
   });
 });
