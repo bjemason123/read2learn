@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { createGoal } from "@/lib/goals";
 import {
   createReadingItem,
+  deferReadingItem,
   deleteReadingItem,
+  restoreReadingItem,
   updateReadingItem,
   updateReadingItemProgress,
 } from "@/lib/readingItems";
@@ -35,6 +37,24 @@ describe("readingItems", () => {
 
     const notStarted = await updateReadingItemProgress(item.id, "NOT_STARTED");
     expect(notStarted.progress).toBe("NOT_STARTED");
+  });
+
+  it("defers and restores a reading item", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const item = await createReadingItem({ goalId: goal.id, title: "The Rust Book" });
+
+    const deferred = await deferReadingItem(item.id);
+    expect(deferred.deferred).toBe(true);
+
+    const restored = await restoreReadingItem(item.id);
+    expect(restored.deferred).toBe(false);
+  });
+
+  it("creates a reading item as not deferred by default", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const item = await createReadingItem({ goalId: goal.id, title: "The Rust Book" });
+
+    expect(item.deferred).toBe(false);
   });
 
   it("updates title, author, url, and note", async () => {
