@@ -130,10 +130,14 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                 goalId={goal.id}
                 progress={item.progress}
               />
-              <form action={deferReadingItemAction.bind(null, item.id, goal.id)}>
+              <form
+                className="inline"
+                action={deferReadingItemAction.bind(null, item.id, goal.id)}
+              >
                 <button type="submit">Defer</button>
               </form>
               <form
+                className="inline"
                 action={deleteReadingItemAction.bind(null, item.id, goal.id)}
               >
                 <button type="submit" className="danger">
@@ -169,11 +173,17 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                   <span className="item-author">by {item.author}</span>
                 )}
                 <form
-                  action={restoreReadingItemAction.bind(null, item.id, goal.id)}
+                  className="inline"
+                  action={restoreReadingItemAction.bind(
+                    null,
+                    item.id,
+                    goal.id,
+                  )}
                 >
                   <button type="submit">Restore</button>
                 </form>
                 <form
+                  className="inline"
                   action={deleteReadingItemAction.bind(null, item.id, goal.id)}
                 >
                   <button type="submit" className="danger">
