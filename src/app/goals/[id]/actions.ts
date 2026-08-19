@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import {
   createReadingItem,
   deleteReadingItem,
+  deferReadingItem,
+  restoreReadingItem,
   updateReadingItemProgress,
 } from "@/lib/readingItems";
 import type { Progress } from "@/generated/prisma/client";
@@ -44,6 +46,30 @@ export async function updateProgressAction(
 
   await recordEvent({
     type: "reading_item_progress_changed",
+    goalId,
+    readingItemId: itemId,
+  });
+
+  revalidatePath(`/goals/${goalId}`);
+}
+
+export async function deferReadingItemAction(itemId: string, goalId: string) {
+  await deferReadingItem(itemId);
+
+  await recordEvent({
+    type: "reading_item_deferred",
+    goalId,
+    readingItemId: itemId,
+  });
+
+  revalidatePath(`/goals/${goalId}`);
+}
+
+export async function restoreReadingItemAction(itemId: string, goalId: string) {
+  await restoreReadingItem(itemId);
+
+  await recordEvent({
+    type: "reading_item_restored",
     goalId,
     readingItemId: itemId,
   });

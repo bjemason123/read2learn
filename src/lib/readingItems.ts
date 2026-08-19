@@ -30,6 +30,20 @@ export function updateReadingItemProgress(id: string, progress: Progress) {
   });
 }
 
+export function deferReadingItem(id: string) {
+  return prisma.readingItem.update({
+    where: { id },
+    data: { deferred: true },
+  });
+}
+
+export function restoreReadingItem(id: string) {
+  return prisma.readingItem.update({
+    where: { id },
+    data: { deferred: false },
+  });
+}
+
 export function updateReadingItem(
   id: string,
   data: { title?: string; author?: string; url?: string; note?: string },

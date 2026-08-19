@@ -8,7 +8,9 @@ import {
 } from "@/app/goals/actions";
 import {
   createReadingItemAction,
+  deferReadingItemAction,
   deleteReadingItemAction,
+  restoreReadingItemAction,
 } from "./actions";
 import { ProgressSelect } from "./progress-select";
 import { recordEvent } from "@/lib/events";
@@ -31,6 +33,8 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
   );
   const addQuestionWithGoalId = addQuestionAction.bind(null, goal.id);
   const questions = parseQuestions(goal.questions);
+  const activeItems = goal.readingItems.filter((item) => !item.deferred);
+  const deferredItems = goal.readingItems.filter((item) => item.deferred);
 
   return (
     <div>
@@ -103,11 +107,11 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
       </form>
 
       <h2>Reading items</h2>
-      {goal.readingItems.length === 0 ? (
+      {activeItems.length === 0 ? (
         <p>No reading items yet.</p>
       ) : (
         <ul className="item-list">
-          {goal.readingItems.map((item) => (
+          {activeItems.map((item) => (
             <li key={item.id} className="item-row">
               <span className="item-title">
                 {item.url ? (
@@ -127,6 +131,13 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                 progress={item.progress}
               />
               <form
+                className="inline"
+                action={deferReadingItemAction.bind(null, item.id, goal.id)}
+              >
+                <button type="submit">Defer</button>
+              </form>
+              <form
+                className="inline"
                 action={deleteReadingItemAction.bind(null, item.id, goal.id)}
               >
                 <button type="submit" className="danger">
@@ -137,6 +148,53 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
             </li>
           ))}
         </ul>
+      )}
+
+      {deferredItems.length > 0 && (
+        <>
+          <h2>Deferred</h2>
+          <ul className="item-list">
+            {deferredItems.map((item) => (
+              <li key={item.id} className="item-row">
+                <span className="item-title">
+                  {item.url ? (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {item.title}
+                    </a>
+                  ) : (
+                    item.title
+                  )}
+                </span>
+                {item.author && (
+                  <span className="item-author">by {item.author}</span>
+                )}
+                <form
+                  className="inline"
+                  action={restoreReadingItemAction.bind(
+                    null,
+                    item.id,
+                    goal.id,
+                  )}
+                >
+                  <button type="submit">Restore</button>
+                </form>
+                <form
+                  className="inline"
+                  action={deleteReadingItemAction.bind(null, item.id, goal.id)}
+                >
+                  <button type="submit" className="danger">
+                    Delete
+                  </button>
+                </form>
+                {item.note && <span className="item-note">{item.note}</span>}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       <h2>Add reading item</h2>
