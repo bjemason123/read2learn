@@ -293,6 +293,12 @@ select:hover {
   border-color: var(--muted);
 }
 
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
 button {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);

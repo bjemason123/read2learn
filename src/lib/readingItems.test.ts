@@ -5,6 +5,7 @@ import {
   createReadingItem,
   deferReadingItem,
   deleteReadingItem,
+  getReadingItem,
   restoreReadingItem,
   updateReadingItem,
   updateReadingItemProgress,
@@ -23,6 +24,42 @@ describe("readingItems", () => {
     expect(item.title).toBe("The Rust Book");
     expect(item.goalId).toBe(goal.id);
     expect(item.progress).toBe("NOT_STARTED");
+  });
+
+  it("fetches a single reading item by id", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const item = await createReadingItem({
+      goalId: goal.id,
+      title: "The Rust Book",
+      author: "Steve Klabnik",
+    });
+
+    const found = await getReadingItem(item.id);
+
+    expect(found?.id).toBe(item.id);
+    expect(found?.title).toBe("The Rust Book");
+    expect(found?.author).toBe("Steve Klabnik");
+    expect(found?.goalId).toBe(goal.id);
+  });
+
+  it("returns null when fetching a reading item that does not exist", async () => {
+    expect(await getReadingItem("does-not-exist")).toBeNull();
+  });
+
+  it("clears optional fields when updated with empty strings", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const item = await createReadingItem({
+      goalId: goal.id,
+      title: "The Rust Book",
+      author: "Steve Klabnik",
+      note: "Start with ch. 4",
+    });
+
+    const updated = await updateReadingItem(item.id, { author: "", note: "" });
+
+    expect(updated.author).toBe("");
+    expect(updated.note).toBe("");
+    expect(updated.title).toBe("The Rust Book");
   });
 
   it("updates progress through all three states", async () => {

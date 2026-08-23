@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getGoal, parseQuestions } from "@/lib/goals";
 import {
@@ -138,6 +139,9 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                 goalId={goal.id}
                 progress={item.progress}
               />
+              <Link href={`/goals/${goal.id}/items/${item.id}/edit`}>
+                Edit
+              </Link>
               <form
                 className="inline"
                 action={deferReadingItemAction.bind(null, item.id, goal.id)}
@@ -181,6 +185,9 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                   <span className="item-author">by {item.author}</span>
                 )}
                 <span className="badge">Deferred</span>
+                <Link href={`/goals/${goal.id}/items/${item.id}/edit`}>
+                  Edit
+                </Link>
                 <form
                   className="inline"
                   action={restoreReadingItemAction.bind(

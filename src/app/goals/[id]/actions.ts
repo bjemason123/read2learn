@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
   createReadingItem,
   deleteReadingItem,
   deferReadingItem,
   restoreReadingItem,
+  updateReadingItem,
   updateReadingItemProgress,
 } from "@/lib/readingItems";
 import type { Progress } from "@/generated/prisma/client";
@@ -35,6 +37,28 @@ export async function createReadingItemAction(
   });
 
   revalidatePath(`/goals/${goalId}`);
+}
+
+export async function updateReadingItemAction(
+  itemId: string,
+  goalId: string,
+  formData: FormData,
+) {
+  await updateReadingItem(itemId, {
+    title: String(formData.get("title") ?? ""),
+    author: String(formData.get("author") ?? ""),
+    url: String(formData.get("url") ?? ""),
+    note: String(formData.get("note") ?? ""),
+  });
+
+  await recordEvent({
+    type: "reading_item_updated",
+    goalId,
+    readingItemId: itemId,
+  });
+
+  revalidatePath(`/goals/${goalId}`);
+  redirect(`/goals/${goalId}`);
 }
 
 export async function updateProgressAction(
