@@ -28,12 +28,20 @@ enum Progress {
   DONE
 }
 
+enum ItemType {
+  BOOK
+  PAPER
+  ARTICLE
+  OTHER
+}
+
 model ReadingItem {
   id        String   @id @default(cuid())
   title     String
   author    String?
   url       String?
   note      String?
+  type      ItemType @default(OTHER)
   progress  Progress @default(NOT_STARTED)
   deferred  Boolean  @default(false)
   position  Int      @default(0)
@@ -41,8 +49,30 @@ model ReadingItem {
   updatedAt DateTime @updatedAt
   goalId    String
   goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  notes     Note[]
 
   @@index([goalId, position])
+}
+
+model Note {
+  id            String      @id @default(cuid())
+  body          String
+  location      String?
+  order         Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  readingItemId String
+  readingItem   ReadingItem @relation(fields: [readingItemId], references: [id], onDelete: Cascade)
+  tags          Tag[]
+
+  @@index([readingItemId, order])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  notes     Note[]
 }
 
 model Event {

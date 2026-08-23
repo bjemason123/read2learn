@@ -19,6 +19,7 @@ import { ItemTitle } from "./item-title";
 import { ProgressSelect } from "./progress-select";
 import { SubmitButton } from "@/app/submit-button";
 import { recordEvent } from "@/lib/events";
+import { ITEM_TYPES } from "@/lib/locationLabel";
 
 export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
   const { id } = await props.params;
@@ -130,6 +131,9 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
               {item.author && (
                 <span className="item-author">by {item.author}</span>
               )}
+              <span className="badge">{item.type.toLowerCase()}</span>
+              <Link href={`/goals/${goal.id}/items/${item.id}`}>Notes</Link>
+              <Link href={`/goals/${goal.id}/items/${item.id}/edit`}>Edit</Link>
               <ProgressSelect
                 itemId={item.id}
                 goalId={goal.id}
@@ -184,7 +188,12 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                 {item.author && (
                   <span className="item-author">by {item.author}</span>
                 )}
+                <span className="badge">{item.type.toLowerCase()}</span>
                 <span className="badge">Deferred</span>
+                <Link href={`/goals/${goal.id}/items/${item.id}`}>Notes</Link>
+                <Link href={`/goals/${goal.id}/items/${item.id}/edit`}>
+                  Edit
+                </Link>
                 <form
                   className="inline"
                   action={moveReadingItemUpAction.bind(null, item.id, goal.id)}
@@ -246,6 +255,16 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
         <div className="field">
           <label htmlFor="item-url">URL</label>
           <input id="item-url" name="url" type="url" />
+        </div>
+        <div className="field">
+          <label htmlFor="item-type">Type</label>
+          <select id="item-type" name="type" defaultValue="OTHER">
+            {ITEM_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type.toLowerCase()}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label htmlFor="item-note">Note</label>
