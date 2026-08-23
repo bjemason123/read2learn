@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { Progress } from "@/generated/prisma/client";
+import type { ItemType, Progress } from "@/generated/prisma/client";
 
 export async function createReadingItem(data: {
   goalId: string;
@@ -7,6 +7,7 @@ export async function createReadingItem(data: {
   author?: string;
   url?: string;
   note?: string;
+  type?: ItemType;
 }) {
   if (!data.title.trim()) {
     throw new Error("Reading item title is required");
@@ -25,6 +26,7 @@ export async function createReadingItem(data: {
       author: data.author,
       url: data.url,
       note: data.note,
+      type: data.type,
       position,
     },
   });
@@ -94,7 +96,13 @@ async function moveReadingItem(id: string, direction: "up" | "down") {
 
 export function updateReadingItem(
   id: string,
-  data: { title?: string; author?: string; url?: string; note?: string },
+  data: {
+    title?: string;
+    author?: string;
+    url?: string;
+    note?: string;
+    type?: ItemType;
+  },
 ) {
   if (data.title !== undefined && !data.title.trim()) {
     throw new Error("Reading item title is required");
@@ -103,6 +111,18 @@ export function updateReadingItem(
   return prisma.readingItem.update({
     where: { id },
     data,
+  });
+}
+
+export function getReadingItem(id: string) {
+  return prisma.readingItem.findUnique({
+    where: { id },
+    include: {
+      notes: {
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        include: { tags: true },
+      },
+    },
   });
 }
 

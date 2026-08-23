@@ -10,7 +10,7 @@ import {
   restoreReadingItem,
   updateReadingItemProgress,
 } from "@/lib/readingItems";
-import type { Progress } from "@/generated/prisma/client";
+import type { ItemType, Progress } from "@/generated/prisma/client";
 import { recordEvent } from "@/lib/events";
 
 export async function createReadingItemAction(
@@ -21,6 +21,7 @@ export async function createReadingItemAction(
   const author = formData.get("author");
   const url = formData.get("url");
   const note = formData.get("note");
+  const type = formData.get("type");
 
   const item = await createReadingItem({
     goalId,
@@ -28,6 +29,7 @@ export async function createReadingItemAction(
     author: author ? String(author) : undefined,
     url: url ? String(url) : undefined,
     note: note ? String(note) : undefined,
+    type: type ? (String(type) as ItemType) : undefined,
   });
 
   await recordEvent({

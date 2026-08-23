@@ -5,6 +5,7 @@ import {
   createReadingItem,
   deferReadingItem,
   deleteReadingItem,
+  getReadingItem,
   moveReadingItemDown,
   moveReadingItemUp,
   restoreReadingItem,
@@ -13,6 +14,8 @@ import {
 } from "@/lib/readingItems";
 
 beforeEach(async () => {
+  await prisma.note.deleteMany();
+  await prisma.tag.deleteMany();
   await prisma.readingItem.deleteMany();
   await prisma.goal.deleteMany();
 });
@@ -199,5 +202,59 @@ describe("readingItems", () => {
     expect(() => updateReadingItem(item.id, { title: "  " })).toThrow(
       "Reading item title is required",
     );
+  });
+  it("defaults type to OTHER", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const item = await createReadingItem({ goalId: goal.id, title: "The Rust Book" });
+
+    expect(item.type).toBe("OTHER");
+  });
+
+  it("creates a reading item with an explicit type", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const item = await createReadingItem({
+      goalId: goal.id,
+      title: "The Rust Book",
+      type: "BOOK",
+    });
+
+    expect(item.type).toBe("BOOK");
+  });
+
+  it("updates a reading item's type", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const item = await createReadingItem({ goalId: goal.id, title: "A paper" });
+
+    const updated = await updateReadingItem(item.id, { type: "PAPER" });
+
+    expect(updated.type).toBe("PAPER");
+  });
+});
+
+describe("getReadingItem", () => {
+  it("returns null for an unknown id", async () => {
+    expect(await getReadingItem("does-not-exist")).toBeNull();
+  });
+
+  it("returns notes ordered by order then createdAt with tags included", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const item = await createReadingItem({ goalId: goal.id, title: "The Rust Book" });
+
+    const second = await prisma.note.create({
+      data: {
+        readingItemId: item.id,
+        body: "Second",
+        order: 1,
+        tags: { create: { name: "memory" } },
+      },
+    });
+    const first = await prisma.note.create({
+      data: { readingItemId: item.id, body: "First", order: 0 },
+    });
+
+    const loaded = await getReadingItem(item.id);
+
+    expect(loaded?.notes.map((note) => note.id)).toEqual([first.id, second.id]);
+    expect(loaded?.notes[1].tags.map((tag) => tag.name)).toEqual(["memory"]);
   });
 });
