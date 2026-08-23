@@ -10,6 +10,8 @@ import {
   createReadingItemAction,
   deferReadingItemAction,
   deleteReadingItemAction,
+  moveReadingItemDownAction,
+  moveReadingItemUpAction,
   restoreReadingItemAction,
 } from "./actions";
 import { ItemTitle } from "./item-title";
@@ -120,7 +122,7 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
         </div>
       ) : (
         <ul className="item-list">
-          {activeItems.map((item) => (
+          {activeItems.map((item, index) => (
             <li key={item.id} className="item-row">
               <ItemTitle title={item.title} url={item.url} />
               {item.author && (
@@ -131,6 +133,25 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                 goalId={goal.id}
                 progress={item.progress}
               />
+              <form
+                className="inline"
+                action={moveReadingItemUpAction.bind(null, item.id, goal.id)}
+              >
+                <SubmitButton pendingLabel="Moving…" disabled={index === 0}>
+                  ↑
+                </SubmitButton>
+              </form>
+              <form
+                className="inline"
+                action={moveReadingItemDownAction.bind(null, item.id, goal.id)}
+              >
+                <SubmitButton
+                  pendingLabel="Moving…"
+                  disabled={index === activeItems.length - 1}
+                >
+                  ↓
+                </SubmitButton>
+              </form>
               <form
                 className="inline"
                 action={deferReadingItemAction.bind(null, item.id, goal.id)}
@@ -155,13 +176,36 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
         <>
           <h2>Deferred</h2>
           <ul className="item-list">
-            {deferredItems.map((item) => (
+            {deferredItems.map((item, index) => (
               <li key={item.id} className="item-row">
                 <ItemTitle title={item.title} url={item.url} />
                 {item.author && (
                   <span className="item-author">by {item.author}</span>
                 )}
                 <span className="badge">Deferred</span>
+                <form
+                  className="inline"
+                  action={moveReadingItemUpAction.bind(null, item.id, goal.id)}
+                >
+                  <SubmitButton pendingLabel="Moving…" disabled={index === 0}>
+                    ↑
+                  </SubmitButton>
+                </form>
+                <form
+                  className="inline"
+                  action={moveReadingItemDownAction.bind(
+                    null,
+                    item.id,
+                    goal.id,
+                  )}
+                >
+                  <SubmitButton
+                    pendingLabel="Moving…"
+                    disabled={index === deferredItems.length - 1}
+                  >
+                    ↓
+                  </SubmitButton>
+                </form>
                 <form
                   className="inline"
                   action={restoreReadingItemAction.bind(

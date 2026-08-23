@@ -5,6 +5,8 @@ import {
   createReadingItem,
   deleteReadingItem,
   deferReadingItem,
+  moveReadingItemDown,
+  moveReadingItemUp,
   restoreReadingItem,
   updateReadingItemProgress,
 } from "@/lib/readingItems";
@@ -70,6 +72,33 @@ export async function restoreReadingItemAction(itemId: string, goalId: string) {
 
   await recordEvent({
     type: "reading_item_restored",
+    goalId,
+    readingItemId: itemId,
+  });
+
+  revalidatePath(`/goals/${goalId}`);
+}
+
+export async function moveReadingItemUpAction(itemId: string, goalId: string) {
+  await moveReadingItemUp(itemId);
+
+  await recordEvent({
+    type: "reading_item_moved_up",
+    goalId,
+    readingItemId: itemId,
+  });
+
+  revalidatePath(`/goals/${goalId}`);
+}
+
+export async function moveReadingItemDownAction(
+  itemId: string,
+  goalId: string,
+) {
+  await moveReadingItemDown(itemId);
+
+  await recordEvent({
+    type: "reading_item_moved_down",
     goalId,
     readingItemId: itemId,
   });

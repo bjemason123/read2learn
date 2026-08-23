@@ -36,10 +36,13 @@ model ReadingItem {
   note      String?
   progress  Progress @default(NOT_STARTED)
   deferred  Boolean  @default(false)
+  position  Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   goalId    String
   goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, position])
 }
 
 model Event {
