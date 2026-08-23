@@ -23,6 +23,10 @@ export function createReadingItem(data: {
   });
 }
 
+export function getReadingItem(id: string) {
+  return prisma.readingItem.findUnique({ where: { id } });
+}
+
 export function updateReadingItemProgress(id: string, progress: Progress) {
   return prisma.readingItem.update({
     where: { id },
