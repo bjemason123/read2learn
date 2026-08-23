@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
+import type { Progress } from "@/generated/prisma/client";
 import {
   addQuestion,
   createGoal,
   deleteGoal,
   deleteQuestion,
   getGoal,
+  groupReadingItemsForPrint,
   listGoals,
   updateGoal,
 } from "@/lib/goals";
@@ -127,5 +129,92 @@ describe("goals", () => {
 
     const updated = await deleteQuestion(goal.id, 0);
     expect(updated.questions).toBeNull();
+  });
+});
+
+describe("groupReadingItemsForPrint", () => {
+  const item = (
+    title: string,
+    progress: Progress,
+    deferred = false,
+  ): { title: string; progress: Progress; deferred: boolean } => ({
+    title,
+    progress,
+    deferred,
+  });
+
+  it("sorts non-deferred items into their progress buckets", () => {
+    const groups = groupReadingItemsForPrint([
+      item("A", "DONE"),
+      item("B", "NOT_STARTED"),
+      item("C", "IN_PROGRESS"),
+    ]);
+
+    expect(groups.map((g) => g.key)).toEqual([
+      "NOT_STARTED",
+      "IN_PROGRESS",
+      "DONE",
+    ]);
+    expect(groups.map((g) => g.items.map((i) => i.title))).toEqual([
+      ["B"],
+      ["C"],
+      ["A"],
+    ]);
+  });
+
+  it("puts deferred items in the Deferred bucket regardless of progress", () => {
+    const groups = groupReadingItemsForPrint([
+      item("done-active", "DONE"),
+      item("done-deferred", "DONE", true),
+      item("not-started-deferred", "NOT_STARTED", true),
+    ]);
+
+    expect(groups.map((g) => g.key)).toEqual(["DONE", "DEFERRED"]);
+    expect(groups[0].items.map((i) => i.title)).toEqual(["done-active"]);
+    expect(groups[1].items.map((i) => i.title)).toEqual([
+      "done-deferred",
+      "not-started-deferred",
+    ]);
+  });
+
+  it("omits empty buckets", () => {
+    const groups = groupReadingItemsForPrint([item("A", "NOT_STARTED")]);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].key).toBe("NOT_STARTED");
+  });
+
+  it("returns an empty array when there are no items", () => {
+    expect(groupReadingItemsForPrint([])).toEqual([]);
+  });
+
+  it("orders all four groups Not started, In progress, Done, Deferred", () => {
+    const groups = groupReadingItemsForPrint([
+      item("d", "NOT_STARTED", true),
+      item("c", "DONE"),
+      item("b", "IN_PROGRESS"),
+      item("a", "NOT_STARTED"),
+    ]);
+
+    expect(groups.map((g) => g.label)).toEqual([
+      "Not started",
+      "In progress",
+      "Done",
+      "Deferred",
+    ]);
+  });
+
+  it("preserves the input order of items within a bucket", () => {
+    const groups = groupReadingItemsForPrint([
+      item("first", "IN_PROGRESS"),
+      item("second", "IN_PROGRESS"),
+      item("third", "IN_PROGRESS"),
+    ]);
+
+    expect(groups[0].items.map((i) => i.title)).toEqual([
+      "first",
+      "second",
+      "third",
+    ]);
   });
 });
