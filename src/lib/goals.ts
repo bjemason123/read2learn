@@ -10,7 +10,11 @@ export function listGoals() {
 export function getGoal(id: string) {
   return prisma.goal.findUnique({
     where: { id },
-    include: { readingItems: true },
+    include: {
+      readingItems: {
+        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+      },
+    },
   });
 }
 

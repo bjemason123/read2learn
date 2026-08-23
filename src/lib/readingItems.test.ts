@@ -5,6 +5,8 @@ import {
   createReadingItem,
   deferReadingItem,
   deleteReadingItem,
+  moveReadingItemDown,
+  moveReadingItemUp,
   restoreReadingItem,
   updateReadingItem,
   updateReadingItemProgress,
@@ -107,7 +109,87 @@ describe("readingItems", () => {
 
   it("throws when creating a reading item with an empty title", async () => {
     const goal = await createGoal({ title: "Learn Rust" });
-    expect(() => createReadingItem({ goalId: goal.id, title: "  " })).toThrow();
+    await expect(
+      createReadingItem({ goalId: goal.id, title: "  " }),
+    ).rejects.toThrow();
+  });
+
+  it("assigns increasing position to new items within a goal", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const first = await createReadingItem({ goalId: goal.id, title: "First" });
+    const second = await createReadingItem({ goalId: goal.id, title: "Second" });
+
+    expect(second.position).toBeGreaterThan(first.position);
+  });
+
+  it("moves an item up, swapping with its predecessor", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const first = await createReadingItem({ goalId: goal.id, title: "First" });
+    const second = await createReadingItem({ goalId: goal.id, title: "Second" });
+
+    await moveReadingItemUp(second.id);
+
+    const items = await prisma.readingItem.findMany({
+      where: { goalId: goal.id },
+      orderBy: { position: "asc" },
+    });
+    expect(items.map((i) => i.id)).toEqual([second.id, first.id]);
+  });
+
+  it("moves an item down, swapping with its successor", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const first = await createReadingItem({ goalId: goal.id, title: "First" });
+    const second = await createReadingItem({ goalId: goal.id, title: "Second" });
+
+    await moveReadingItemDown(first.id);
+
+    const items = await prisma.readingItem.findMany({
+      where: { goalId: goal.id },
+      orderBy: { position: "asc" },
+    });
+    expect(items.map((i) => i.id)).toEqual([second.id, first.id]);
+  });
+
+  it("no-ops moving the top item up", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const first = await createReadingItem({ goalId: goal.id, title: "First" });
+    await createReadingItem({ goalId: goal.id, title: "Second" });
+
+    const result = await moveReadingItemUp(first.id);
+    expect(result.position).toBe(first.position);
+  });
+
+  it("no-ops moving the bottom item down", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    await createReadingItem({ goalId: goal.id, title: "First" });
+    const second = await createReadingItem({ goalId: goal.id, title: "Second" });
+
+    const result = await moveReadingItemDown(second.id);
+    expect(result.position).toBe(second.position);
+  });
+
+  it("skips items in the other deferred bucket when moving", async () => {
+    const goal = await createGoal({ title: "Learn Rust" });
+    const first = await createReadingItem({ goalId: goal.id, title: "First" });
+    const second = await createReadingItem({ goalId: goal.id, title: "Second" });
+    const third = await createReadingItem({ goalId: goal.id, title: "Third" });
+    await deferReadingItem(second.id);
+    const secondBefore = await prisma.readingItem.findUniqueOrThrow({
+      where: { id: second.id },
+    });
+
+    await moveReadingItemDown(first.id);
+
+    const activeItems = await prisma.readingItem.findMany({
+      where: { goalId: goal.id, deferred: false },
+      orderBy: { position: "asc" },
+    });
+    expect(activeItems.map((i) => i.id)).toEqual([third.id, first.id]);
+
+    const secondAfter = await prisma.readingItem.findUniqueOrThrow({
+      where: { id: second.id },
+    });
+    expect(secondAfter.position).toBe(secondBefore.position);
   });
 
   it("rejects updating a reading item with a blank title", async () => {
