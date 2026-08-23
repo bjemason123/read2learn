@@ -12,6 +12,7 @@ import {
   deleteReadingItemAction,
   restoreReadingItemAction,
 } from "./actions";
+import { ItemTitle } from "./item-title";
 import { ProgressSelect } from "./progress-select";
 import { SubmitButton } from "@/app/submit-button";
 import { recordEvent } from "@/lib/events";
@@ -121,15 +122,7 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
         <ul className="item-list">
           {activeItems.map((item) => (
             <li key={item.id} className="item-row">
-              <span className="item-title">
-                {item.url ? (
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    {item.title}
-                  </a>
-                ) : (
-                  item.title
-                )}
-              </span>
+              <ItemTitle title={item.title} url={item.url} />
               {item.author && (
                 <span className="item-author">by {item.author}</span>
               )}
@@ -164,19 +157,7 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
           <ul className="item-list">
             {deferredItems.map((item) => (
               <li key={item.id} className="item-row">
-                <span className="item-title">
-                  {item.url ? (
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {item.title}
-                    </a>
-                  ) : (
-                    item.title
-                  )}
-                </span>
+                <ItemTitle title={item.title} url={item.url} />
                 {item.author && (
                   <span className="item-author">by {item.author}</span>
                 )}
