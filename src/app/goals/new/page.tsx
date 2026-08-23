@@ -1,4 +1,5 @@
 import { createGoalAction } from "@/app/goals/actions";
+import { SubmitButton } from "@/app/submit-button";
 
 export default function NewGoalPage() {
   return (
@@ -22,7 +23,9 @@ export default function NewGoalPage() {
             placeholder="One question per line"
           />
         </div>
-        <button type="submit">Create goal</button>
+        <SubmitButton className="primary" pendingLabel="Creating…">
+          Create goal
+        </SubmitButton>
       </form>
     </div>
   );

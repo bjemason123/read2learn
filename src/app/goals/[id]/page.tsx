@@ -13,6 +13,7 @@ import {
   restoreReadingItemAction,
 } from "./actions";
 import { ProgressSelect } from "./progress-select";
+import { SubmitButton } from "@/app/submit-button";
 import { recordEvent } from "@/lib/events";
 
 export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
@@ -71,28 +72,33 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
             defaultValue={goal.questions ?? ""}
           />
         </div>
-        <button type="submit">Save changes</button>
+        <SubmitButton className="primary" pendingLabel="Saving…">
+          Save changes
+        </SubmitButton>
       </form>
       <form action={deleteGoalWithId}>
-        <button type="submit" className="danger">
+        <SubmitButton className="danger" pendingLabel="Deleting…">
           Delete goal
-        </button>
+        </SubmitButton>
       </form>
 
       <h2>Questions</h2>
       {questions.length === 0 ? (
-        <p>No questions yet.</p>
+        <div className="empty-state">
+          No questions yet. Add the things you want this reading to answer.
+        </div>
       ) : (
         <ul className="item-list">
           {questions.map((question, index) => (
             <li key={index} className="item-row">
               <span className="item-title">{question}</span>
               <form
+                className="inline"
                 action={deleteQuestionAction.bind(null, goal.id, index)}
               >
-                <button type="submit" className="danger">
+                <SubmitButton className="danger" pendingLabel="Deleting…">
                   Delete
-                </button>
+                </SubmitButton>
               </form>
             </li>
           ))}
@@ -103,12 +109,14 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
           <label htmlFor="question">Add a question</label>
           <input id="question" name="question" type="text" required />
         </div>
-        <button type="submit">Add question</button>
+        <SubmitButton pendingLabel="Adding…">Add question</SubmitButton>
       </form>
 
       <h2>Reading items</h2>
       {activeItems.length === 0 ? (
-        <p>No reading items yet.</p>
+        <div className="empty-state">
+          No reading items yet. Add articles, books, or papers below.
+        </div>
       ) : (
         <ul className="item-list">
           {activeItems.map((item) => (
@@ -134,15 +142,15 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                 className="inline"
                 action={deferReadingItemAction.bind(null, item.id, goal.id)}
               >
-                <button type="submit">Defer</button>
+                <SubmitButton pendingLabel="Deferring…">Defer</SubmitButton>
               </form>
               <form
                 className="inline"
                 action={deleteReadingItemAction.bind(null, item.id, goal.id)}
               >
-                <button type="submit" className="danger">
+                <SubmitButton className="danger" pendingLabel="Deleting…">
                   Delete
-                </button>
+                </SubmitButton>
               </form>
               {item.note && <span className="item-note">{item.note}</span>}
             </li>
@@ -172,6 +180,7 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                 {item.author && (
                   <span className="item-author">by {item.author}</span>
                 )}
+                <span className="badge">Deferred</span>
                 <form
                   className="inline"
                   action={restoreReadingItemAction.bind(
@@ -180,15 +189,15 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                     goal.id,
                   )}
                 >
-                  <button type="submit">Restore</button>
+                  <SubmitButton pendingLabel="Restoring…">Restore</SubmitButton>
                 </form>
                 <form
                   className="inline"
                   action={deleteReadingItemAction.bind(null, item.id, goal.id)}
                 >
-                  <button type="submit" className="danger">
+                  <SubmitButton className="danger" pendingLabel="Deleting…">
                     Delete
-                  </button>
+                  </SubmitButton>
                 </form>
                 {item.note && <span className="item-note">{item.note}</span>}
               </li>
@@ -215,7 +224,9 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
           <label htmlFor="item-note">Note</label>
           <textarea id="item-note" name="note" rows={2} />
         </div>
-        <button type="submit">Add reading item</button>
+        <SubmitButton className="primary" pendingLabel="Adding…">
+          Add reading item
+        </SubmitButton>
       </form>
     </div>
   );
