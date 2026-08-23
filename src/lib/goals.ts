@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Progress } from "@/generated/prisma/client";
 
 export function listGoals() {
   return prisma.goal.findMany({
@@ -60,6 +61,38 @@ export function parseQuestions(questions: string | null | undefined): string[] {
     .split("\n")
     .map((q) => q.trim())
     .filter((q) => q.length > 0);
+}
+
+export const PRINT_GROUP_LABELS = {
+  NOT_STARTED: "Not started",
+  IN_PROGRESS: "In progress",
+  DONE: "Done",
+  DEFERRED: "Deferred",
+} as const;
+
+export type PrintGroupKey = keyof typeof PRINT_GROUP_LABELS;
+
+export function groupReadingItemsForPrint<
+  T extends { progress: Progress; deferred: boolean },
+>(items: T[]): { key: PrintGroupKey; label: string; items: T[] }[] {
+  const buckets: Record<PrintGroupKey, T[]> = {
+    NOT_STARTED: [],
+    IN_PROGRESS: [],
+    DONE: [],
+    DEFERRED: [],
+  };
+
+  for (const item of items) {
+    if (item.deferred) {
+      buckets.DEFERRED.push(item);
+    } else {
+      buckets[item.progress].push(item);
+    }
+  }
+
+  return (Object.keys(PRINT_GROUP_LABELS) as PrintGroupKey[])
+    .filter((key) => buckets[key].length > 0)
+    .map((key) => ({ key, label: PRINT_GROUP_LABELS[key], items: buckets[key] }));
 }
 
 export async function addQuestion(id: string, question: string) {

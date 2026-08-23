@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getGoal, parseQuestions } from "@/lib/goals";
 import {
@@ -43,6 +44,7 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
   return (
     <div>
       <h1>{goal.title}</h1>
+      <Link href={`/goals/${goal.id}/print`}>Export to PDF</Link>
 
       <h2>Edit goal</h2>
       <form action={updateGoalWithId}>
