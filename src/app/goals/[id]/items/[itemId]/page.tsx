@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getNotesForItem } from "@/lib/notes";
 import { getReadingItem } from "@/lib/readingItems";
 import { NotesPanel } from "./notes-panel";
 
@@ -12,6 +13,8 @@ export default async function ReadingItemDetailPage(
   if (!item || item.goalId !== id) {
     notFound();
   }
+
+  const notes = await getNotesForItem(item.id);
 
   return (
     <div>
@@ -30,7 +33,7 @@ export default async function ReadingItemDetailPage(
       <Link href={`/goals/${id}/items/${item.id}/edit`}>Edit item</Link>
 
       <NotesPanel
-        notes={item.notes}
+        notes={notes}
         itemId={item.id}
         goalId={id}
         type={item.type}

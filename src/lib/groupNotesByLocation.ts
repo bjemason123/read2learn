@@ -19,6 +19,7 @@ export function groupNotesByLocation<
   }));
 
   entries.sort((a, b) => {
+    if (a.location === null && b.location === null) return 0;
     if (a.location === null) return 1;
     if (b.location === null) return -1;
     return a.minOrder - b.minOrder;
