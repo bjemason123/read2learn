@@ -115,15 +115,7 @@ export function updateReadingItem(
 }
 
 export function getReadingItem(id: string) {
-  return prisma.readingItem.findUnique({
-    where: { id },
-    include: {
-      notes: {
-        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-        include: { tags: true },
-      },
-    },
-  });
+  return prisma.readingItem.findUnique({ where: { id } });
 }
 
 export function deleteReadingItem(id: string) {
