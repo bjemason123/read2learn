@@ -26,6 +26,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Link href="/" className="site-title">
             Reading Curator
           </Link>
+          <nav className="site-nav">
+            <Link href="/goals">My goals</Link>
+          </nav>
         </header>
         <main className="site-main">{children}</main>
       </body>

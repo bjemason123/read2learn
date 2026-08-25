@@ -85,6 +85,26 @@ a:hover {
   border-bottom: 1px solid var(--border);
   padding: var(--space-4) var(--space-5);
   background: var(--surface);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+}
+
+.site-nav {
+  display: flex;
+  gap: var(--space-4);
+  font-size: 0.9rem;
+}
+
+.site-nav a {
+  color: var(--foreground);
+}
+
+.site-nav a:hover {
+  color: var(--accent);
+  text-decoration: none;
 }
 
 .site-title {
@@ -488,4 +508,109 @@ button.primary:disabled:hover {
   color: var(--danger);
   font-size: 0.85rem;
   margin: var(--space-2) 0;
+}
+
+/* Landing page */
+
+.landing-hero {
+  padding: var(--space-6) 0 var(--space-5);
+}
+
+.landing-hero h1 {
+  font-size: 2.1rem;
+  margin-bottom: var(--space-3);
+}
+
+.landing-subhead {
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin-bottom: var(--space-5);
+}
+
+.landing-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.landing-cta {
+  display: inline-block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  color: inherit;
+  background: var(--background);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.landing-cta:hover {
+  text-decoration: none;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.landing-cta.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.landing-cta.primary:hover {
+  color: var(--accent-contrast);
+  filter: brightness(1.1);
+}
+
+.landing-problem p,
+.landing-closing p {
+  color: var(--muted);
+}
+
+.landing-feature-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.landing-feature-list li {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.landing-feature-title {
+  font-weight: 600;
+}
+
+.landing-feature-detail {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.landing-step-list {
+  margin: var(--space-2) 0 var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.landing-how-note {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.landing-closing {
+  margin-bottom: var(--space-6);
+}
+
+.landing-closing p {
+  margin-bottom: var(--space-4);
 }
