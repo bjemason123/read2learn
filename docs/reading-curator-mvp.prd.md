@@ -1,7 +1,7 @@
 # Reading Curator MVP — PRD
 
-*Status: draft v1 — derived from `docs/requirements-v0.7.md` (full-service requirements statement) plus a scoped-down founder MVP.*
-*Author: Brian Mason (bjemason@gmail.com) · Date: 2026-08-17*
+*Status: v2 — MVP built and in dogfood use. Derived from `docs/requirements-v0.7.md` (full-service requirements statement) plus a scoped-down founder MVP.*
+*Author: Brian Mason (bjemason@gmail.com) · Created: 2026-08-17 · Updated: 2026-08-25 (post-MVP review, §13)*
 
 ---
 
@@ -35,7 +35,7 @@ Build a **working app** that lets a learner:
 
 This is a deliberately thin slice of the much larger service described in `docs/requirements-v0.7.md` (segment identification, retrieval practice, spaced review, the knowledge artefact, adaptive diagnosis). Those remain the long-term vision and are explicitly deferred past this MVP — see §5 and §9. The MVP tests the foundational hypothesis that a goal-scoped reading plan, kept alive and revisited, is something people will actually use — before investing in the harder, evidence-heavy curatorial machinery (segment claims, corroboration, retrieval loop) that the fuller spec calls for.
 
-There is no existing codebase to extend — this repository currently contains only the requirements document and devcontainer scaffolding (see §10). The MVP is greenfield.
+This was a greenfield build when the PRD was written. The MVP described here is now implemented — see §10 for the stack as built, §11 for phase status, and §13 for a review of the shipped product.
 
 ## 4. Key Hypothesis
 
@@ -65,10 +65,16 @@ Explicitly out of scope for this MVP (deferred to later phases per the full requ
 
 ## 7. Open Questions
 
-- What counts as a "visit" or "update" for the primary metric — is any list view a visit, or only edits? TBD — needs product decision before instrumentation is built.
-- Single-user (founder dogfood) vs. multi-user from day one? Scope answers imply a working app to test the concept personally — TBD whether auth/multi-tenancy is needed for v1 or can be deferred.
-- Data model for "reading material" — is it free text/links only, or does it need bibliographic verification (FR-8, FR-40 in the full spec) from day one? Leaning toward free text/links for MVP simplicity, but not yet decided.
-- Platform: web app, mobile, or both? Not specified in scope answers — TBD.
+**Resolved during MVP build** (see §13 for the review that closed them):
+
+- ~~Single-user vs. multi-user from day one?~~ **Resolved: single-user.** No auth or multi-tenancy was built. The app is a local founder-dogfood instance backed by SQLite.
+- ~~Data model for "reading material": free text/links, or bibliographic verification?~~ **Resolved: free text/links.** `ReadingItem` carries title, optional author, optional URL, and a type enum (BOOK/PAPER/ARTICLE/OTHER). No verification (FR-8, FR-40) was implemented.
+- ~~Platform: web, mobile, or both?~~ **Resolved: responsive web app**, server-rendered.
+
+**Still open:**
+
+- What counts as a "visit" or "update" for the primary metric? Still undecided, and now blocking: events are being written for every mutation plus `goal_viewed`, but nothing reads them, so the primary metric is uncomputed. The proposed resolution is to treat *updates* as the metric and views as background context — see §13.
+- Should questions be first-class entities? They are currently a newline-delimited text blob on `Goal` with positional identity, which makes them unaddressable. This blocks linking notes to questions (§13).
 - No further scope items were requested (scope answer 5: no).
 
 ## 8. Users & Context
@@ -101,37 +107,43 @@ A single learner can: create a learning goal → add one or more reading items t
 
 ## 10. Technical Approach
 
-**Current repository state (verified by reading the working tree):**
-- `docs/requirements-v0.7.md` — the full requirements statement this PRD is derived from. Verified present.
-- `.devcontainer/devcontainer.json` and `.devcontainer/devcontainer-lock.json` — devcontainer scaffolding only. Verified present; contents not yet inspected for stack implications.
-- `.archon/config.yaml` — Archon workspace config, not application code.
-- **No application source code exists in this repository yet** — no `src/`, no package manifest (`package.json`, `pyproject.toml`, etc.), no database schema, no API routes. This is a greenfield build.
+*This section was written when the repository was greenfield. It has been rewritten to describe what was actually built.*
 
-Because there is no existing application code, no file paths, function names, API endpoints, or DB schema can be verified or referenced — all of the following are **needs verification / to be decided during implementation planning**, not confirmed facts:
+**Stack as built** (verified by reading the working tree):
 
-- Application stack (frontend framework, backend language/framework, hosting) — TBD, not present in repo, no decision recorded in scope answers.
-- Data storage (learner, goal, reading item entities per §10 of `requirements-v0.7.md` — a reasonable starting entity model to reuse, but not yet implemented anywhere).
-- Auth/multi-tenancy approach — depends on open question in §7 (single-user dogfood vs. multi-user).
+- **Next.js 16 (App Router)** with React 19, TypeScript. Server components by default; mutations are server actions, not REST routes.
+- **Prisma 7 over SQLite** (`prisma/schema.prisma`, `better-sqlite3` adapter). Client generated to `src/generated/prisma`.
+- **Hand-rolled CSS** in `src/app/globals.css` using custom properties (`--space-*`, `--accent`, `--surface`, `--border`) with a `prefers-color-scheme` dark variant. No CSS framework.
+- **Vitest + Testing Library** for unit and component tests.
+- **No authentication and no hosting** — runs locally via `next dev`. Single-user by design (§7).
 
-**Recommendation for next step**: before writing implementation phases with real file/module references, a stack decision and initial scaffold are needed. This PRD intentionally stops short of prescribing a stack since none was specified in the scope answers and none exists in the codebase to extend.
+**Entity model as built:**
+
+- `Goal` — title, optional description, optional `questions` (newline-delimited text, not a relation).
+- `ReadingItem` — title, optional author/url/note, `ItemType` enum, `Progress` enum (NOT_STARTED/IN_PROGRESS/DONE), `deferred` flag, `position` for manual ordering; cascades from `Goal`.
+- `Note` — body, optional `location` (page/chapter/section), `order`; cascades from `ReadingItem`; many-to-many with `Tag`.
+- `Tag` — unique name, shared across notes.
+- `Event` — type, optional `goalId`/`readingItemId`, `createdAt`. **Written but never read** (§13).
+
+**Route map:** `/` landing page · `/goals` dashboard · `/goals/new` · `/goals/[id]` detail · `/goals/[id]/print` · `/goals/[id]/items/[itemId]` notes · `/goals/[id]/items/[itemId]/edit` · `/tags` · `/tags/[name]`.
 
 ## 11. Implementation Phases
 
-| Phase | Status | Scope | Parallelizable? |
+| Phase | Status | Scope | Notes |
 |---|---|---|---|
-| 0. Stack & scaffold decision | Not started | Choose stack, scaffold a minimal working app skeleton (frontend + backend + persistence) | No — blocks everything else |
-| 1. Goal + reading list core loop | Not started | Implement Must-haves from §9: create goal, attach reading material, view/maintain list across sessions | No — depends on Phase 0 |
-| 2. Progress tracking & goal editing | Not started | Should-haves: per-item progress state, goal revision without data loss | Can start once Phase 1's data model exists; UI and backend work can proceed in parallel once schema is fixed |
-| 3. Usage instrumentation | Not started | Track visits/updates to plan for the primary success metric (§6) | Can be built alongside Phase 1–2 once the core entities exist |
-| 4. (Optional, Could-have) Service-suggested material | Not started | FR-7-style recommendation, only if Phase 1–3 validate the hypothesis | Deferred until after MVP usage data is in |
+| 0. Stack & scaffold decision | **Done** | Next.js 16 + Prisma/SQLite scaffold | See §10 |
+| 1. Goal + reading list core loop | **Done** | Create goal, attach reading material, view/maintain list across sessions | All §9 Must-haves shipped |
+| 2. Progress tracking & goal editing | **Done** | Per-item progress state, goal revision without data loss | Both Should-haves shipped |
+| 3. Usage instrumentation | **Partial** | `Event` rows written for all mutations plus `goal_viewed` | **Write-only — nothing reads the table, so the primary metric (§6) is still uncomputed** |
+| 4. (Optional, Could-have) Service-suggested material | Not started | FR-7-style recommendation | Still deferred pending usage data |
 
-No implementation has started; this is a fresh PRD for a greenfield build.
+**Also shipped beyond the original phase plan:** per-location reading notes with tags and cross-goal tag browsing, deferral/backlog (the Could-have from §9), manual reordering, print/PDF export of a goal, and a landing page at `/`.
+
+The MVP loop defined in §9 is built and in use. Phases 0–2 are complete; Phase 3 is half-built.
 
 ## Validation Notes
 
-All technical references verified against codebase. No corrections needed.
-
-Checked: repository was confirmed to contain no application source code (no `packages/server`, no routes, no migrations, no UI components, no package manifest) — only `docs/requirements-v0.7.md`, `.devcontainer/` scaffolding, and `.archon/config.yaml`. The PRD's Technical Approach section already correctly states this greenfield status and marks stack, schema, and API decisions as TBD rather than asserting specifics, so it required no edits.
+*Original note (build not yet started) superseded.* Re-validated 2026-08-25 against the working tree at `ca90d50`: stack, entity model, and route map in §10 read directly from `package.json`, `prisma/schema.prisma`, and `src/app/`. The §13 findings below were produced by reading `src/app/page.tsx`, `src/app/goals/page.tsx`, `src/app/goals/[id]/page.tsx`, `src/app/goals/new/page.tsx`, `src/app/tags/page.tsx`, and `src/lib/events.ts`.
 
 ## 12. Decisions Log
 
@@ -140,3 +152,39 @@ Checked: repository was confirmed to contain no application source code (no `pac
 - **Primary success metric set to usage frequency (visits/updates to the plan)**, not learning-outcome measurement, both because the MVP has no retrieval-practice loop to measure against and because the full spec treats learning-outcome claims as an explicit non-goal until later evidence (scope answer 3).
 - **No additional scope items added** — user confirmed no further scope needed (scope answer 5).
 - **Technical Approach left largely unresolved (stack, entities, hosting)** rather than guessed, because the repository has no application code and the scope answers didn't specify a stack — per the first-principles rule, nothing was asserted that couldn't be verified by reading the codebase.
+
+## 13. Post-MVP Product Review (2026-08-25)
+
+A review of the shipped implementation against this PRD's hypothesis (§4). Summary: **the MVP loop works, but nothing in the app reflects the product's thesis back at the user.** The hypothesis is that a goal-scoped plan *kept alive and revisited* changes behaviour. The app stores the plan; it never signals whether the plan is alive. Findings below are tracked as GitHub issues.
+
+### Defects
+
+- **`/tags` "Back to goals" link points at `/`**, which became the landing page when the dashboard moved to `/goals`. The label now misdescribes where it goes. Regression from the landing-page change.
+- **`/tags` is effectively unreachable.** The only entry point is a tag chip on an individual note. Cross-reading tag browsing — the most learning-oriented surface in the app — is not in the header nav or on any index page.
+
+### Product gaps
+
+- **The goal detail page is inverted.** The Edit-goal form sits permanently expanded above the reading list, with an unconfirmed Delete alongside it, so the rare act occupies prime position and the destructive act is one misclick. Each reading row carries eight controls. This reads as a CRUD admin screen rather than something a learner scans to decide what to read next.
+- **Questions are inert.** "Questions you want to answer" is the sharpest expression of this PRD's convergence idea, but questions connect to nothing — no note references one, nothing shows which remain unanswered. Making questions first-class and linking notes to them would produce a real convergence signal ("three of your five questions are still open") without pulling in any deferred v2 machinery from §5. Requires promoting `Goal.questions` from a positional text blob to its own entity.
+- **Telemetry is write-only.** ~15 `recordEvent` call sites, zero readers. The §6 primary metric is uncomputable as a result. Preferred resolution: surface activity as a *user-facing* signal ("last touched 12 days ago" on each goal, activity on goal detail) rather than a founder-only analytics page — this makes the app the thing that catches the drift §8 says has no tutor or deadline to catch it, and settles the §7 metric-definition question as a by-product.
+- **`/goals` shows only a reading-item count**, which says nothing about state. A progress rollup and last-activity date are both derivable from existing data.
+- **`/goals/new` offers no scaffolding.** The landing page promises to turn a vague ambition into a concrete goal; the form is three empty boxes, only one of which has a placeholder.
+- **Defer vs. Delete is unexplained.** Both appear on every row with no indication that Defer means backlog (FR-62) rather than hide.
+
+### Tracking
+
+| Finding | Issue |
+|---|---|
+| `/tags` back-link points at landing page | [#18](https://github.com/bjemason123/read2learn/issues/18) |
+| Tags browsing unreachable from nav | [#19](https://github.com/bjemason123/read2learn/issues/19) |
+| Goal detail page inverted | [#20](https://github.com/bjemason123/read2learn/issues/20) |
+| Activity signal / write-only telemetry | [#21](https://github.com/bjemason123/read2learn/issues/21) |
+| Questions first-class, notes linked to them | [#22](https://github.com/bjemason123/read2learn/issues/22) |
+| New-goal form scaffolding | [#23](https://github.com/bjemason123/read2learn/issues/23) |
+| Defer vs. Delete unexplained | [#24](https://github.com/bjemason123/read2learn/issues/24) |
+
+Suggested order: #18 and #19 first (one is a live bug, both are minutes), then #20, then #21, then #22 after its own design pass.
+
+### Confirmed healthy
+
+Landing page claims were checked against the implementation — every claim describes a feature that exists, and none promise the §5 deferred features (retrieval practice, concept mapping, corroboration).
