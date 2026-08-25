@@ -49,3 +49,6 @@ next-env.d.ts
 /prisma/test.db-journal
 /dev.db
 /dev.db-journal
+
+# local database backups (e.g. dev.db.bak-20260824-085538)
+*.db.bak*
