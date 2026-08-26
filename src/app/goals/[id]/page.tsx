@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getGoal, parseQuestions } from "@/lib/goals";
+import { getGoal } from "@/lib/goals";
 import {
   addQuestionAction,
   deleteGoalAction,
@@ -38,7 +38,10 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
     goal.id,
   );
   const addQuestionWithGoalId = addQuestionAction.bind(null, goal.id);
-  const questions = parseQuestions(goal.questions);
+  const questions = goal.questions;
+  const unansweredCount = questions.filter(
+    (question) => question.notes.length === 0,
+  ).length;
   const activeItems = goal.readingItems.filter((item) => !item.deferred);
   const deferredItems = goal.readingItems.filter((item) => item.deferred);
 
@@ -68,16 +71,6 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
             defaultValue={goal.description ?? ""}
           />
         </div>
-        <div className="field">
-          <label htmlFor="questions">Questions you want to answer</label>
-          <textarea
-            id="questions"
-            name="questions"
-            rows={3}
-            placeholder="One question per line"
-            defaultValue={goal.questions ?? ""}
-          />
-        </div>
         <SubmitButton className="primary" pendingLabel="Saving…">
           Save changes
         </SubmitButton>
@@ -94,21 +87,43 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
           No questions yet. Add the things you want this reading to answer.
         </div>
       ) : (
-        <ul className="item-list">
-          {questions.map((question, index) => (
-            <li key={index} className="item-row">
-              <span className="item-title">{question}</span>
-              <form
-                className="inline"
-                action={deleteQuestionAction.bind(null, goal.id, index)}
-              >
-                <SubmitButton className="danger" pendingLabel="Deleting…">
-                  Delete
-                </SubmitButton>
-              </form>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p className="question-summary">
+            {unansweredCount === 0
+              ? `All ${questions.length} question${questions.length === 1 ? "" : "s"} answered.`
+              : `${unansweredCount} of ${questions.length} question${questions.length === 1 ? "" : "s"} still open.`}
+          </p>
+          <ul className="item-list">
+            {questions.map((question) => (
+              <li key={question.id} className="item-row">
+                <span className="item-title">{question.text}</span>
+                {question.notes.length === 0 ? (
+                  <span className="badge">Unanswered</span>
+                ) : (
+                  <ul className="question-answers">
+                    {question.notes.map((note) => (
+                      <li key={note.id}>
+                        <Link
+                          href={`/goals/${goal.id}/items/${note.readingItem.id}`}
+                        >
+                          note in {note.readingItem.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <form
+                  className="inline"
+                  action={deleteQuestionAction.bind(null, goal.id, question.id)}
+                >
+                  <SubmitButton className="danger" pendingLabel="Deleting…">
+                    Delete
+                  </SubmitButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
       <form action={addQuestionWithGoalId}>
         <div className="field">

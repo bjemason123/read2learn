@@ -3,7 +3,6 @@ import {
   PRINT_GROUP_LABELS,
   getGoal,
   groupReadingItemsForPrint,
-  parseQuestions,
 } from "@/lib/goals";
 import { PrintTrigger } from "./print-trigger";
 
@@ -17,7 +16,7 @@ export default async function GoalPrintPage(
     notFound();
   }
 
-  const questions = parseQuestions(goal.questions);
+  const questions = goal.questions;
   const groups = groupReadingItemsForPrint(goal.readingItems);
 
   return (
@@ -31,8 +30,8 @@ export default async function GoalPrintPage(
         <section>
           <h2>Questions</h2>
           <ul className="print-question-list">
-            {questions.map((question, index) => (
-              <li key={index}>{question}</li>
+            {questions.map((question) => (
+              <li key={question.id}>{question.text}</li>
             ))}
           </ul>
         </section>

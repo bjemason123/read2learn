@@ -19,6 +19,12 @@ function parseTags(formData: FormData): string[] {
     .filter(Boolean);
 }
 
+// The checkbox group is always rendered, so an empty result means "the user
+// unchecked everything" rather than "the field was absent" — always sync it.
+function parseQuestionIds(formData: FormData): string[] {
+  return formData.getAll("questionIds").map(String);
+}
+
 function errorMessage(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback;
 }
@@ -43,6 +49,7 @@ export async function createNoteAction(
       body,
       location: location ? String(location) : undefined,
       tags: parseTags(formData),
+      questionIds: parseQuestionIds(formData),
     });
 
     await recordEvent({ type: "note_created", goalId, readingItemId });
@@ -69,6 +76,7 @@ export async function updateNoteAction(
       body,
       location,
       tags: parseTags(formData),
+      questionIds: parseQuestionIds(formData),
     });
 
     await recordEvent({ type: "note_updated", goalId, readingItemId });
