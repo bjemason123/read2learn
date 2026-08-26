@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addQuestion, createGoal, deleteGoal, deleteQuestion, updateGoal } from "@/lib/goals";
+import { createGoal, deleteGoal, parseQuestions, updateGoal } from "@/lib/goals";
+import { createQuestion, deleteQuestion } from "@/lib/questions";
 import { recordEvent } from "@/lib/events";
 
 export async function createGoalAction(formData: FormData) {
@@ -13,7 +14,7 @@ export async function createGoalAction(formData: FormData) {
   const goal = await createGoal({
     title,
     description: description ? String(description) : undefined,
-    questions: questions ? String(questions) : undefined,
+    questions: parseQuestions(questions ? String(questions) : undefined),
   });
 
   await recordEvent({ type: "goal_created", goalId: goal.id });
@@ -25,12 +26,10 @@ export async function createGoalAction(formData: FormData) {
 export async function updateGoalAction(id: string, formData: FormData) {
   const title = formData.get("title");
   const description = formData.get("description");
-  const questions = formData.get("questions");
 
   await updateGoal(id, {
     title: title !== null ? String(title) : undefined,
     description: description !== null ? String(description) : undefined,
-    questions: questions !== null ? String(questions) : undefined,
   });
 
   await recordEvent({ type: "goal_updated", goalId: id });
@@ -50,15 +49,15 @@ export async function deleteGoalAction(id: string) {
 export async function addQuestionAction(id: string, formData: FormData) {
   const question = String(formData.get("question") ?? "");
 
-  await addQuestion(id, question);
+  await createQuestion(id, question);
 
   await recordEvent({ type: "goal_question_added", goalId: id });
 
   revalidatePath(`/goals/${id}`);
 }
 
-export async function deleteQuestionAction(id: string, index: number) {
-  await deleteQuestion(id, index);
+export async function deleteQuestionAction(id: string, questionId: string) {
+  await deleteQuestion(questionId);
 
   await recordEvent({ type: "goal_question_deleted", goalId: id });
 

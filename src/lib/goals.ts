@@ -15,6 +15,12 @@ export function getGoal(id: string) {
       readingItems: {
         orderBy: [{ position: "asc" }, { createdAt: "asc" }],
       },
+      questions: {
+        orderBy: { order: "asc" },
+        // `readingItem` so the goal page can link each answering note back to
+        // the item it was taken in without a second query.
+        include: { notes: { include: { readingItem: true } } },
+      },
     },
   });
 }
@@ -22,24 +28,30 @@ export function getGoal(id: string) {
 export function createGoal(data: {
   title: string;
   description?: string;
-  questions?: string;
+  questions?: string[];
 }) {
   if (!data.title.trim()) {
     throw new Error("Goal title is required");
   }
 
+  const questions = (data.questions ?? [])
+    .map((text) => text.trim())
+    .filter((text) => text.length > 0);
+
   return prisma.goal.create({
     data: {
       title: data.title,
       description: data.description,
-      questions: data.questions,
+      questions: {
+        create: questions.map((text, order) => ({ text, order })),
+      },
     },
   });
 }
 
 export function updateGoal(
   id: string,
-  data: { title?: string; description?: string; questions?: string },
+  data: { title?: string; description?: string },
 ) {
   if (data.title !== undefined && !data.title.trim()) {
     throw new Error("Goal title is required");
@@ -55,6 +67,8 @@ export function deleteGoal(id: string) {
   return prisma.goal.delete({ where: { id } });
 }
 
+// Questions are now their own rows; this only splits the one-per-line textarea
+// on the new-goal form into the lines `createGoal` turns into Question rows.
 export function parseQuestions(questions: string | null | undefined): string[] {
   if (!questions) return [];
   return questions
@@ -93,29 +107,4 @@ export function groupReadingItemsForPrint<
   return (Object.keys(PRINT_GROUP_LABELS) as PrintGroupKey[])
     .filter((key) => buckets[key].length > 0)
     .map((key) => ({ key, label: PRINT_GROUP_LABELS[key], items: buckets[key] }));
-}
-
-export async function addQuestion(id: string, question: string) {
-  if (!question.trim()) {
-    throw new Error("Question text is required");
-  }
-
-  const goal = await prisma.goal.findUniqueOrThrow({ where: { id } });
-  const questions = [...parseQuestions(goal.questions), question.trim()];
-
-  return prisma.goal.update({
-    where: { id },
-    data: { questions: questions.join("\n") },
-  });
-}
-
-export async function deleteQuestion(id: string, index: number) {
-  const goal = await prisma.goal.findUniqueOrThrow({ where: { id } });
-  const questions = parseQuestions(goal.questions);
-  questions.splice(index, 1);
-
-  return prisma.goal.update({
-    where: { id },
-    data: { questions: questions.length > 0 ? questions.join("\n") : null },
-  });
 }

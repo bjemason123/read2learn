@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { syncNoteQuestions } from "@/lib/questions";
 import { pruneOrphanTags, syncNoteTags } from "@/lib/tags";
 
 export async function createNote(data: {
@@ -6,6 +7,7 @@ export async function createNote(data: {
   body: string;
   location?: string;
   tags?: string[];
+  questionIds?: string[];
 }) {
   if (!data.body.trim()) {
     throw new Error("Note body is required");
@@ -33,9 +35,13 @@ export async function createNote(data: {
     await syncNoteTags(note.id, data.tags);
   }
 
+  if (data.questionIds && data.questionIds.length > 0) {
+    await syncNoteQuestions(note.id, data.questionIds);
+  }
+
   return prisma.note.findUniqueOrThrow({
     where: { id: note.id },
-    include: { tags: true },
+    include: { tags: true, questions: true },
   });
 }
 
@@ -43,13 +49,18 @@ export function getNotesForItem(readingItemId: string) {
   return prisma.note.findMany({
     where: { readingItemId },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-    include: { tags: true },
+    include: { tags: true, questions: true },
   });
 }
 
 export async function updateNote(
   id: string,
-  data: { body?: string; location?: string; tags?: string[] },
+  data: {
+    body?: string;
+    location?: string;
+    tags?: string[];
+    questionIds?: string[];
+  },
 ) {
   if (data.body !== undefined && !data.body.trim()) {
     throw new Error("Note body is required");
@@ -71,16 +82,20 @@ export async function updateNote(
     await syncNoteTags(id, data.tags);
   }
 
+  if (data.questionIds !== undefined) {
+    await syncNoteQuestions(id, data.questionIds);
+  }
+
   return prisma.note.findUniqueOrThrow({
     where: { id },
-    include: { tags: true },
+    include: { tags: true, questions: true },
   });
 }
 
 export async function deleteNote(id: string) {
   const note = await prisma.note.delete({
     where: { id },
-    include: { tags: true },
+    include: { tags: true, questions: true },
   });
 
   await pruneOrphanTags();
@@ -92,7 +107,7 @@ export function getNotesByTag(tagName: string) {
   return prisma.note.findMany({
     where: { tags: { some: { name: tagName } } },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-    include: { tags: true, readingItem: { include: { goal: true } } },
+    include: { tags: true, questions: true, readingItem: { include: { goal: true } } },
   });
 }
 

@@ -7,4 +7,8 @@ export type NoteView = {
   location: string | null;
   order: number;
   tags: { id: string; name: string }[];
+  questions: { id: string }[];
 };
+
+// The goal's questions offered as link targets on the note forms.
+export type QuestionView = { id: string; text: string };

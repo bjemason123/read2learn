@@ -16,10 +16,23 @@ model Goal {
   id           String        @id @default(cuid())
   title        String
   description  String?
-  questions    String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   readingItems ReadingItem[]
+  questions    Question[]
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  text      String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  notes     Note[]
+
+  @@index([goalId, order])
 }
 
 enum Progress {
@@ -64,6 +77,7 @@ model Note {
   readingItemId String
   readingItem   ReadingItem @relation(fields: [readingItemId], references: [id], onDelete: Cascade)
   tags          Tag[]
+  questions     Question[]
 
   @@index([readingItemId, order])
 }

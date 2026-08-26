@@ -2,13 +2,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
 import type { Progress } from "@/generated/prisma/client";
 import {
-  addQuestion,
   createGoal,
   deleteGoal,
-  deleteQuestion,
   getGoal,
   groupReadingItemsForPrint,
   listGoals,
+  parseQuestions,
   updateGoal,
 } from "@/lib/goals";
 import { createReadingItem } from "@/lib/readingItems";
@@ -57,17 +56,53 @@ describe("goals", () => {
     expect(found?.readingItems).toHaveLength(1);
   });
 
-  it("stores the questions the learner wants to answer", async () => {
+  it("creates the questions the learner wants to answer as their own rows", async () => {
     const goal = await createGoal({
       title: "Learn Rust",
-      questions: "What is ownership?",
+      questions: ["What is ownership?", "What is borrowing?"],
     });
-    expect(goal.questions).toBe("What is ownership?");
 
-    const updated = await updateGoal(goal.id, {
-      questions: "What is borrowing?",
+    const found = await getGoal(goal.id);
+    expect(found?.questions.map((q) => q.text)).toEqual([
+      "What is ownership?",
+      "What is borrowing?",
+    ]);
+    expect(found?.questions.map((q) => q.order)).toEqual([0, 1]);
+  });
+
+  it("trims question text and drops blank lines when creating a goal", async () => {
+    const goal = await createGoal({
+      title: "Learn Rust",
+      questions: ["  What is ownership?  ", "   ", "", "What is borrowing?"],
     });
-    expect(updated.questions).toBe("What is borrowing?");
+
+    const found = await getGoal(goal.id);
+    expect(found?.questions.map((q) => q.text)).toEqual([
+      "What is ownership?",
+      "What is borrowing?",
+    ]);
+  });
+
+  it("gives each question a stable id so it can be referenced by notes", async () => {
+    const goal = await createGoal({
+      title: "Learn Rust",
+      questions: ["What is ownership?"],
+    });
+
+    const first = await getGoal(goal.id);
+    const second = await getGoal(goal.id);
+    expect(first?.questions[0].id).toBe(second?.questions[0].id);
+  });
+
+  it("cascades question deletion when the goal is deleted", async () => {
+    const goal = await createGoal({
+      title: "Learn Rust",
+      questions: ["What is ownership?"],
+    });
+
+    await deleteGoal(goal.id);
+
+    expect(await prisma.question.count({ where: { goalId: goal.id } })).toBe(0);
   });
 
   it("deletes a goal and cascades its reading items", async () => {
@@ -86,49 +121,24 @@ describe("goals", () => {
     expect(() => createGoal({ title: "   " })).toThrow();
   });
 
-  it("adds a question to a goal with no existing questions", async () => {
-    const goal = await createGoal({ title: "Learn Rust" });
+});
 
-    const updated = await addQuestion(goal.id, "What is ownership?");
-    expect(updated.questions).toBe("What is ownership?");
+describe("parseQuestions", () => {
+  it("splits the one-per-line textarea into trimmed lines", () => {
+    expect(parseQuestions("What is ownership?\nWhat is borrowing?")).toEqual([
+      "What is ownership?",
+      "What is borrowing?",
+    ]);
   });
 
-  it("appends a question to a goal's existing questions", async () => {
-    const goal = await createGoal({
-      title: "Learn Rust",
-      questions: "What is ownership?",
-    });
-
-    const updated = await addQuestion(goal.id, "What is borrowing?");
-    expect(updated.questions).toBe("What is ownership?\nWhat is borrowing?");
+  it("drops blank and whitespace-only lines", () => {
+    expect(parseQuestions("a\n\n   \nb")).toEqual(["a", "b"]);
   });
 
-  it("rejects adding a blank question", async () => {
-    const goal = await createGoal({ title: "Learn Rust" });
-
-    await expect(addQuestion(goal.id, "  ")).rejects.toThrow(
-      "Question text is required",
-    );
-  });
-
-  it("deletes a question by index", async () => {
-    const goal = await createGoal({
-      title: "Learn Rust",
-      questions: "What is ownership?\nWhat is borrowing?",
-    });
-
-    const updated = await deleteQuestion(goal.id, 0);
-    expect(updated.questions).toBe("What is borrowing?");
-  });
-
-  it("clears questions to null when the last one is deleted", async () => {
-    const goal = await createGoal({
-      title: "Learn Rust",
-      questions: "What is ownership?",
-    });
-
-    const updated = await deleteQuestion(goal.id, 0);
-    expect(updated.questions).toBeNull();
+  it("returns an empty array for null, undefined, or empty input", () => {
+    expect(parseQuestions(null)).toEqual([]);
+    expect(parseQuestions(undefined)).toEqual([]);
+    expect(parseQuestions("")).toEqual([]);
   });
 });
 

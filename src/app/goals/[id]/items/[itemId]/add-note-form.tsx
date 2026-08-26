@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { SubmitButton } from "@/app/submit-button";
 import { createNoteAction, type NoteActionState } from "./notes/actions";
+import type { QuestionView } from "./note-view";
 
 const INITIAL: NoteActionState = {};
 
@@ -12,12 +13,14 @@ export function AddNoteForm({
   locationLabel,
   locationPlaceholder,
   locations,
+  questions,
 }: {
   itemId: string;
   goalId: string;
   locationLabel: string;
   locationPlaceholder: string;
   locations: string[];
+  questions: QuestionView[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction] = useActionState(
@@ -63,6 +66,17 @@ export function AddNoteForm({
           placeholder="Comma-separated"
         />
       </div>
+      {questions.length > 0 && (
+        <fieldset className="field">
+          <legend>Answers which question(s)?</legend>
+          {questions.map((question) => (
+            <label key={question.id} className="checkbox-option">
+              <input type="checkbox" name="questionIds" value={question.id} />
+              {question.text}
+            </label>
+          ))}
+        </fieldset>
+      )}
       {state.error && (
         <p className="form-error" role="alert">
           {state.error}

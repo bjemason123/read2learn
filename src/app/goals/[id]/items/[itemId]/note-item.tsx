@@ -8,7 +8,7 @@ import {
   updateNoteAction,
   type NoteActionState,
 } from "./notes/actions";
-import type { NoteView } from "./note-view";
+import type { NoteView, QuestionView } from "./note-view";
 
 const INITIAL: NoteActionState = {};
 
@@ -19,6 +19,7 @@ export function NoteItem({
   locationLabel,
   locationPlaceholder,
   locations,
+  questions,
 }: {
   note: NoteView;
   itemId: string;
@@ -26,6 +27,7 @@ export function NoteItem({
   locationLabel: string;
   locationPlaceholder: string;
   locations: string[];
+  questions: QuestionView[];
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -92,6 +94,24 @@ export function NoteItem({
               defaultValue={note.tags.map((tag) => tag.name).join(", ")}
             />
           </div>
+          {questions.length > 0 && (
+            <fieldset className="field">
+              <legend>Answers which question(s)?</legend>
+              {questions.map((question) => (
+                <label key={question.id} className="checkbox-option">
+                  <input
+                    type="checkbox"
+                    name="questionIds"
+                    value={question.id}
+                    defaultChecked={note.questions.some(
+                      (linked) => linked.id === question.id,
+                    )}
+                  />
+                  {question.text}
+                </label>
+              ))}
+            </fieldset>
+          )}
           {updateState.error && (
             <p className="form-error" role="alert">
               {updateState.error}

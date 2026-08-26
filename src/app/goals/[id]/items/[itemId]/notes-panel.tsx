@@ -3,18 +3,20 @@ import { groupNotesByLocation } from "@/lib/groupNotesByLocation";
 import { locationLabelFor } from "@/lib/locationLabel";
 import { AddNoteForm } from "./add-note-form";
 import { NoteItem } from "./note-item";
-import type { NoteView } from "./note-view";
+import type { NoteView, QuestionView } from "./note-view";
 
 export function NotesPanel({
   notes,
   itemId,
   goalId,
   type,
+  questions,
 }: {
   notes: NoteView[];
   itemId: string;
   goalId: string;
   type: ItemType;
+  questions: QuestionView[];
 }) {
   const groups = groupNotesByLocation(notes);
   const { label, placeholder } = locationLabelFor(type);
@@ -47,6 +49,7 @@ export function NotesPanel({
                   locationLabel={label}
                   locationPlaceholder={placeholder}
                   locations={locations}
+                  questions={questions}
                 />
               ))}
             </ul>
@@ -61,6 +64,7 @@ export function NotesPanel({
         locationLabel={label}
         locationPlaceholder={placeholder}
         locations={locations}
+        questions={questions}
       />
     </section>
   );
