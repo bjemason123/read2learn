@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { createUser } from "@/lib/users";
 import type { Progress } from "@/generated/prisma/client";
 import {
   createGoal,
@@ -12,57 +13,64 @@ import {
 } from "@/lib/goals";
 import { createReadingItem } from "@/lib/readingItems";
 
+let userId: string;
+
 beforeEach(async () => {
   await prisma.readingItem.deleteMany();
   await prisma.goal.deleteMany();
+  await prisma.user.deleteMany();
+
+  userId = (
+    await createUser({ email: "reader@example.com", password: "password123" })
+  ).id;
 });
 
 describe("goals", () => {
   it("creates a goal", async () => {
-    const goal = await createGoal({ title: "Learn Rust" });
+    const goal = await createGoal({ userId, title: "Learn Rust" });
     expect(goal.title).toBe("Learn Rust");
     expect(goal.description).toBeNull();
   });
 
   it("gets a goal by id including its reading items", async () => {
-    const goal = await createGoal({ title: "Learn Rust" });
-    await createReadingItem({ goalId: goal.id, title: "The Rust Book" });
+    const goal = await createGoal({ userId, title: "Learn Rust" });
+    await createReadingItem({ userId, goalId: goal.id, title: "The Rust Book" });
 
-    const found = await getGoal(goal.id);
+    const found = await getGoal(goal.id, userId);
     expect(found?.title).toBe("Learn Rust");
     expect(found?.readingItems).toHaveLength(1);
   });
 
   it("lists all goals", async () => {
-    await createGoal({ title: "Learn Rust" });
-    await createGoal({ title: "Learn Go" });
+    await createGoal({ userId, title: "Learn Rust" });
+    await createGoal({ userId, title: "Learn Go" });
 
-    const goals = await listGoals();
+    const goals = await listGoals(userId);
     expect(goals).toHaveLength(2);
   });
 
   it("updates a goal's title and description without losing reading items", async () => {
-    const goal = await createGoal({ title: "Learn Rust" });
-    await createReadingItem({ goalId: goal.id, title: "The Rust Book" });
+    const goal = await createGoal({ userId, title: "Learn Rust" });
+    await createReadingItem({ userId, goalId: goal.id, title: "The Rust Book" });
 
-    const updated = await updateGoal(goal.id, {
+    const updated = await updateGoal(goal.id, userId, {
       title: "Learn Rust Well",
       description: "Focus on ownership",
     });
     expect(updated.title).toBe("Learn Rust Well");
     expect(updated.description).toBe("Focus on ownership");
 
-    const found = await getGoal(goal.id);
+    const found = await getGoal(goal.id, userId);
     expect(found?.readingItems).toHaveLength(1);
   });
 
   it("creates the questions the learner wants to answer as their own rows", async () => {
-    const goal = await createGoal({
+    const goal = await createGoal({ userId,
       title: "Learn Rust",
       questions: ["What is ownership?", "What is borrowing?"],
     });
 
-    const found = await getGoal(goal.id);
+    const found = await getGoal(goal.id, userId);
     expect(found?.questions.map((q) => q.text)).toEqual([
       "What is ownership?",
       "What is borrowing?",
@@ -71,12 +79,12 @@ describe("goals", () => {
   });
 
   it("trims question text and drops blank lines when creating a goal", async () => {
-    const goal = await createGoal({
+    const goal = await createGoal({ userId,
       title: "Learn Rust",
       questions: ["  What is ownership?  ", "   ", "", "What is borrowing?"],
     });
 
-    const found = await getGoal(goal.id);
+    const found = await getGoal(goal.id, userId);
     expect(found?.questions.map((q) => q.text)).toEqual([
       "What is ownership?",
       "What is borrowing?",
@@ -84,43 +92,113 @@ describe("goals", () => {
   });
 
   it("gives each question a stable id so it can be referenced by notes", async () => {
-    const goal = await createGoal({
+    const goal = await createGoal({ userId,
       title: "Learn Rust",
       questions: ["What is ownership?"],
     });
 
-    const first = await getGoal(goal.id);
-    const second = await getGoal(goal.id);
+    const first = await getGoal(goal.id, userId);
+    const second = await getGoal(goal.id, userId);
     expect(first?.questions[0].id).toBe(second?.questions[0].id);
   });
 
   it("cascades question deletion when the goal is deleted", async () => {
-    const goal = await createGoal({
+    const goal = await createGoal({ userId,
       title: "Learn Rust",
       questions: ["What is ownership?"],
     });
 
-    await deleteGoal(goal.id);
+    await deleteGoal(goal.id, userId);
 
     expect(await prisma.question.count({ where: { goalId: goal.id } })).toBe(0);
   });
 
   it("deletes a goal and cascades its reading items", async () => {
-    const goal = await createGoal({ title: "Learn Rust" });
-    const item = await createReadingItem({ goalId: goal.id, title: "The Rust Book" });
+    const goal = await createGoal({ userId, title: "Learn Rust" });
+    const item = await createReadingItem({ userId, goalId: goal.id, title: "The Rust Book" });
 
-    await deleteGoal(goal.id);
+    await deleteGoal(goal.id, userId);
 
-    const found = await getGoal(goal.id);
+    const found = await getGoal(goal.id, userId);
     expect(found).toBeNull();
     const remainingItem = await prisma.readingItem.findUnique({ where: { id: item.id } });
     expect(remainingItem).toBeNull();
   });
 
   it("throws when creating a goal with an empty title", () => {
-    expect(() => createGoal({ title: "   " })).toThrow();
+    expect(() => createGoal({ userId, title: "   " })).toThrow();
   });
 
+});
+
+// The core security property of the auth feature: one user's data must never
+// be readable or writable by another.
+describe("cross-user isolation", () => {
+  let otherUserId: string;
+
+  beforeEach(async () => {
+    otherUserId = (
+      await createUser({ email: "other@example.com", password: "password123" })
+    ).id;
+  });
+
+  it("does not list another user's goals", async () => {
+    await createGoal({ userId, title: "Mine" });
+    await createGoal({ userId: otherUserId, title: "Theirs" });
+
+    const mine = await listGoals(userId);
+    expect(mine.map((goal) => goal.title)).toEqual(["Mine"]);
+
+    const theirs = await listGoals(otherUserId);
+    expect(theirs.map((goal) => goal.title)).toEqual(["Theirs"]);
+  });
+
+  it("returns null when fetching another user's goal by id", async () => {
+    const goal = await createGoal({ userId: otherUserId, title: "Theirs" });
+
+    expect(await getGoal(goal.id, userId)).toBeNull();
+  });
+
+  it("refuses to update another user's goal", async () => {
+    const goal = await createGoal({ userId: otherUserId, title: "Theirs" });
+
+    await expect(
+      updateGoal(goal.id, userId, { title: "Hijacked" }),
+    ).rejects.toThrow("Goal not found");
+
+    const unchanged = await getGoal(goal.id, otherUserId);
+    expect(unchanged?.title).toBe("Theirs");
+  });
+
+  it("refuses to delete another user's goal", async () => {
+    const goal = await createGoal({ userId: otherUserId, title: "Theirs" });
+
+    await expect(deleteGoal(goal.id, userId)).rejects.toThrow("Goal not found");
+    expect(await getGoal(goal.id, otherUserId)).not.toBeNull();
+  });
+
+  it("reports a missing goal and another user's goal identically", async () => {
+    const goal = await createGoal({ userId: otherUserId, title: "Theirs" });
+
+    const foreign = await deleteGoal(goal.id, userId).catch(
+      (err: Error) => err.message,
+    );
+    const missing = await deleteGoal("does-not-exist", userId).catch(
+      (err: Error) => err.message,
+    );
+
+    expect(foreign).toBe(missing);
+  });
+
+  it("cascades a user's goals away when the user is deleted", async () => {
+    const goal = await createGoal({ userId: otherUserId, title: "Theirs" });
+
+    await prisma.user.delete({ where: { id: otherUserId } });
+
+    expect(
+      await prisma.goal.findUnique({ where: { id: goal.id } }),
+    ).toBeNull();
+  });
 });
 
 describe("parseQuestions", () => {

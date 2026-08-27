@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { updateReadingItem } from "@/lib/readingItems";
 import { recordEvent } from "@/lib/events";
+import { requireUserId } from "@/lib/session";
 import type { ItemType } from "@/generated/prisma/client";
 
 export async function updateReadingItemAction(
@@ -11,12 +12,13 @@ export async function updateReadingItemAction(
   goalId: string,
   formData: FormData,
 ) {
+  const userId = await requireUserId();
   const title = formData.get("title");
   const author = formData.get("author");
   const url = formData.get("url");
   const type = formData.get("type");
 
-  await updateReadingItem(itemId, {
+  await updateReadingItem(itemId, userId, {
     title: title !== null ? String(title) : undefined,
     author: author !== null ? String(author) : undefined,
     url: url !== null ? String(url) : undefined,
@@ -27,6 +29,7 @@ export async function updateReadingItemAction(
     type: "reading_item_updated",
     goalId,
     readingItemId: itemId,
+    userId,
   });
 
   revalidatePath(`/goals/${goalId}`);

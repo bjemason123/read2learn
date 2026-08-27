@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getNotesByTag } from "@/lib/notes";
+import { requireUserId } from "@/lib/session";
 
 type TaggedNote = Awaited<ReturnType<typeof getNotesByTag>>[number];
 
@@ -24,9 +25,10 @@ function groupByReadingItem(notes: TaggedNote[]) {
 export default async function TagDetailPage(
   props: PageProps<"/tags/[name]">,
 ) {
+  const userId = await requireUserId();
   const { name } = await props.params;
   const tagName = decodeURIComponent(name);
-  const notes = await getNotesByTag(tagName);
+  const notes = await getNotesByTag(tagName, userId);
   const groups = groupByReadingItem(notes);
 
   return (

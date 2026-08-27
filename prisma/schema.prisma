@@ -12,14 +12,28 @@ datasource db {
   provider = "sqlite"
 }
 
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  goals        Goal[]
+  tags         Tag[]
+}
+
 model Goal {
   id           String        @id @default(cuid())
   title        String
   description  String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   readingItems ReadingItem[]
   questions    Question[]
+
+  @@index([userId])
 }
 
 model Question {
@@ -84,9 +98,13 @@ model Note {
 
 model Tag {
   id        String   @id @default(cuid())
-  name      String   @unique
+  name      String
   createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   notes     Note[]
+
+  @@unique([userId, name])
 }
 
 model Event {
@@ -94,5 +112,6 @@ model Event {
   type          String
   goalId        String?
   readingItemId String?
+  userId        String?
   createdAt     DateTime @default(now())
 }

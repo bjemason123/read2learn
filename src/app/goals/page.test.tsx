@@ -7,6 +7,12 @@ import GoalsPage from "./page";
 
 vi.mock("@/lib/goals", () => ({ listGoals: vi.fn() }));
 
+// The page reads the caller's id from the session cookie, which needs a
+// Next.js request scope that does not exist under vitest.
+vi.mock("@/lib/session", () => ({
+  requireUserId: vi.fn(async () => "user_1"),
+}));
+
 const mockedListGoals = vi.mocked(listGoals);
 
 afterEach(() => {

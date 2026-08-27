@@ -12,11 +12,13 @@ import {
 } from "@/lib/readingItems";
 import type { ItemType, Progress } from "@/generated/prisma/client";
 import { recordEvent } from "@/lib/events";
+import { requireUserId } from "@/lib/session";
 
 export async function createReadingItemAction(
   goalId: string,
   formData: FormData,
 ) {
+  const userId = await requireUserId();
   const title = String(formData.get("title") ?? "");
   const author = formData.get("author");
   const url = formData.get("url");
@@ -25,6 +27,7 @@ export async function createReadingItemAction(
 
   const item = await createReadingItem({
     goalId,
+    userId,
     title,
     author: author ? String(author) : undefined,
     url: url ? String(url) : undefined,
@@ -36,6 +39,7 @@ export async function createReadingItemAction(
     type: "reading_item_created",
     goalId,
     readingItemId: item.id,
+    userId,
   });
 
   revalidatePath(`/goals/${goalId}`);
@@ -46,48 +50,60 @@ export async function updateProgressAction(
   goalId: string,
   progress: Progress,
 ) {
-  await updateReadingItemProgress(itemId, progress);
+  const userId = await requireUserId();
+
+  await updateReadingItemProgress(itemId, userId, progress);
 
   await recordEvent({
     type: "reading_item_progress_changed",
     goalId,
     readingItemId: itemId,
+    userId,
   });
 
   revalidatePath(`/goals/${goalId}`);
 }
 
 export async function deferReadingItemAction(itemId: string, goalId: string) {
-  await deferReadingItem(itemId);
+  const userId = await requireUserId();
+
+  await deferReadingItem(itemId, userId);
 
   await recordEvent({
     type: "reading_item_deferred",
     goalId,
     readingItemId: itemId,
+    userId,
   });
 
   revalidatePath(`/goals/${goalId}`);
 }
 
 export async function restoreReadingItemAction(itemId: string, goalId: string) {
-  await restoreReadingItem(itemId);
+  const userId = await requireUserId();
+
+  await restoreReadingItem(itemId, userId);
 
   await recordEvent({
     type: "reading_item_restored",
     goalId,
     readingItemId: itemId,
+    userId,
   });
 
   revalidatePath(`/goals/${goalId}`);
 }
 
 export async function moveReadingItemUpAction(itemId: string, goalId: string) {
-  await moveReadingItemUp(itemId);
+  const userId = await requireUserId();
+
+  await moveReadingItemUp(itemId, userId);
 
   await recordEvent({
     type: "reading_item_moved_up",
     goalId,
     readingItemId: itemId,
+    userId,
   });
 
   revalidatePath(`/goals/${goalId}`);
@@ -97,24 +113,30 @@ export async function moveReadingItemDownAction(
   itemId: string,
   goalId: string,
 ) {
-  await moveReadingItemDown(itemId);
+  const userId = await requireUserId();
+
+  await moveReadingItemDown(itemId, userId);
 
   await recordEvent({
     type: "reading_item_moved_down",
     goalId,
     readingItemId: itemId,
+    userId,
   });
 
   revalidatePath(`/goals/${goalId}`);
 }
 
 export async function deleteReadingItemAction(itemId: string, goalId: string) {
+  const userId = await requireUserId();
+
   await recordEvent({
     type: "reading_item_deleted",
     goalId,
     readingItemId: itemId,
+    userId,
   });
-  await deleteReadingItem(itemId);
+  await deleteReadingItem(itemId, userId);
 
   revalidatePath(`/goals/${goalId}`);
 }
