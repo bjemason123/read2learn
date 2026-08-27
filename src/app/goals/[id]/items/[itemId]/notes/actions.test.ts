@@ -4,7 +4,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // server actions are called directly from vitest.
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
+// Server actions read the caller's id from the session cookie, which needs a
+// Next.js request scope. Mock it to the user each test creates.
+const session = vi.hoisted(() => ({ userId: "" }));
+vi.mock("@/lib/session", () => ({
+  requireUserId: vi.fn(async () => session.userId),
+}));
+
+
 import { prisma } from "@/lib/prisma";
+import { createUser } from "@/lib/users";
 import { createGoal } from "@/lib/goals";
 import { createReadingItem } from "@/lib/readingItems";
 import { createNote } from "@/lib/notes";
@@ -14,17 +23,25 @@ import {
   updateNoteAction,
 } from "./actions";
 
+let userId: string;
+
 beforeEach(async () => {
   await prisma.event.deleteMany();
   await prisma.note.deleteMany();
   await prisma.tag.deleteMany();
   await prisma.readingItem.deleteMany();
   await prisma.goal.deleteMany();
+  await prisma.user.deleteMany();
+
+  userId = (
+    await createUser({ email: "reader@example.com", password: "password123" })
+  ).id;
+  session.userId = userId;
 });
 
 async function makeItem() {
-  const goal = await createGoal({ title: "Learn Rust" });
-  const item = await createReadingItem({
+  const goal = await createGoal({ userId, title: "Learn Rust" });
+  const item = await createReadingItem({ userId,
     goalId: goal.id,
     title: "The Rust Book",
   });
@@ -118,7 +135,7 @@ describe("createNoteAction", () => {
 describe("updateNoteAction", () => {
   it("updates a note and records a note_updated event", async () => {
     const { goal, item } = await makeItem();
-    const note = await createNote({ readingItemId: item.id, body: "Original" });
+    const note = await createNote({ userId, readingItemId: item.id, body: "Original" });
 
     const result = await updateNoteAction(
       note.id,
@@ -144,7 +161,7 @@ describe("updateNoteAction", () => {
 
   it("returns an error instead of throwing when the body is empty", async () => {
     const { goal, item } = await makeItem();
-    const note = await createNote({ readingItemId: item.id, body: "Original" });
+    const note = await createNote({ userId, readingItemId: item.id, body: "Original" });
 
     const result = await updateNoteAction(
       note.id,
@@ -164,7 +181,7 @@ describe("updateNoteAction", () => {
 
   it("replaces tags from FormData and prunes the orphaned tag", async () => {
     const { goal, item } = await makeItem();
-    const note = await createNote({
+    const note = await createNote({ userId,
       readingItemId: item.id,
       body: "A note",
       tags: ["memory"],
@@ -190,7 +207,7 @@ describe("updateNoteAction", () => {
 describe("deleteNoteAction", () => {
   it("deletes a note and records a note_deleted event", async () => {
     const { goal, item } = await makeItem();
-    const note = await createNote({ readingItemId: item.id, body: "A note" });
+    const note = await createNote({ userId, readingItemId: item.id, body: "A note" });
 
     const result = await deleteNoteAction(note.id, item.id, goal.id);
 

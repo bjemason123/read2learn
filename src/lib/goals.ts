@@ -1,16 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import type { Progress } from "@/generated/prisma/client";
 
-export function listGoals() {
+export function listGoals(userId: string) {
   return prisma.goal.findMany({
+    where: { userId },
     include: { readingItems: true },
     orderBy: { createdAt: "desc" },
   });
 }
 
-export function getGoal(id: string) {
-  return prisma.goal.findUnique({
-    where: { id },
+export function getGoal(id: string, userId: string) {
+  return prisma.goal.findFirst({
+    where: { id, userId },
     include: {
       readingItems: {
         orderBy: [{ position: "asc" }, { createdAt: "asc" }],
@@ -29,6 +30,7 @@ export function createGoal(data: {
   title: string;
   description?: string;
   questions?: string[];
+  userId: string;
 }) {
   if (!data.title.trim()) {
     throw new Error("Goal title is required");
@@ -42,6 +44,7 @@ export function createGoal(data: {
     data: {
       title: data.title,
       description: data.description,
+      userId: data.userId,
       questions: {
         create: questions.map((text, order) => ({ text, order })),
       },
@@ -49,13 +52,16 @@ export function createGoal(data: {
   });
 }
 
-export function updateGoal(
+export async function updateGoal(
   id: string,
+  userId: string,
   data: { title?: string; description?: string },
 ) {
   if (data.title !== undefined && !data.title.trim()) {
     throw new Error("Goal title is required");
   }
+
+  await requireGoalOwner(id, userId);
 
   return prisma.goal.update({
     where: { id },
@@ -63,8 +69,26 @@ export function updateGoal(
   });
 }
 
-export function deleteGoal(id: string) {
+export async function deleteGoal(id: string, userId: string) {
+  await requireGoalOwner(id, userId);
+
   return prisma.goal.delete({ where: { id } });
+}
+
+// `update`/`delete` can only match on a unique field, so ownership is checked
+// first. Someone hitting another user's goal id gets "Goal not found" — the
+// same error as a genuinely missing goal, so ids can't be probed for existence.
+export async function requireGoalOwner(id: string, userId: string) {
+  const goal = await prisma.goal.findFirst({
+    where: { id, userId },
+    select: { id: true },
+  });
+
+  if (!goal) {
+    throw new Error("Goal not found");
+  }
+
+  return goal;
 }
 
 // Questions are now their own rows; this only splits the one-per-line textarea

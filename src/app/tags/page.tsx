@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { listTags } from "@/lib/notes";
+import { requireUserId } from "@/lib/session";
 
 export default async function TagsPage() {
-  const tags = await listTags();
+  const userId = await requireUserId();
+  const tags = await listTags(userId);
 
   return (
     <div>

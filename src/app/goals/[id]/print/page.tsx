@@ -5,12 +5,14 @@ import {
   groupReadingItemsForPrint,
 } from "@/lib/goals";
 import { PrintTrigger } from "./print-trigger";
+import { requireUserId } from "@/lib/session";
 
 export default async function GoalPrintPage(
   props: PageProps<"/goals/[id]/print">,
 ) {
+  const userId = await requireUserId();
   const { id } = await props.params;
-  const goal = await getGoal(id);
+  const goal = await getGoal(id, userId);
 
   if (!goal) {
     notFound();

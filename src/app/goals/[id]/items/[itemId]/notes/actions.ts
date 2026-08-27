@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createNote, deleteNote, updateNote } from "@/lib/notes";
 import { recordEvent } from "@/lib/events";
+import { requireUserId } from "@/lib/session";
 
 // Notes are the first place in this app where a user can lose typed work, so
 // these actions return `{ error }` rather than letting the lib's throw
@@ -44,15 +45,18 @@ export async function createNoteAction(
   const location = formData.get("location");
 
   try {
+    const userId = await requireUserId();
+
     await createNote({
       readingItemId,
+      userId,
       body,
       location: location ? String(location) : undefined,
       tags: parseTags(formData),
       questionIds: parseQuestionIds(formData),
     });
 
-    await recordEvent({ type: "note_created", goalId, readingItemId });
+    await recordEvent({ type: "note_created", goalId, readingItemId, userId });
     revalidateNoteViews(goalId, readingItemId);
 
     return { ok: true };
@@ -72,14 +76,16 @@ export async function updateNoteAction(
   const location = String(formData.get("location") ?? "");
 
   try {
-    await updateNote(noteId, {
+    const userId = await requireUserId();
+
+    await updateNote(noteId, userId, {
       body,
       location,
       tags: parseTags(formData),
       questionIds: parseQuestionIds(formData),
     });
 
-    await recordEvent({ type: "note_updated", goalId, readingItemId });
+    await recordEvent({ type: "note_updated", goalId, readingItemId, userId });
     revalidateNoteViews(goalId, readingItemId);
 
     return { ok: true };
@@ -98,8 +104,10 @@ export async function deleteNoteAction(
   try {
     // Unlike reading items, `Event` has no FK to `Note`, so the event is
     // recorded after the delete — that way a failed delete records nothing.
-    await deleteNote(noteId);
-    await recordEvent({ type: "note_deleted", goalId, readingItemId });
+    const userId = await requireUserId();
+
+    await deleteNote(noteId, userId);
+    await recordEvent({ type: "note_deleted", goalId, readingItemId, userId });
 
     revalidateNoteViews(goalId, readingItemId);
 

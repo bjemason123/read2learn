@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { listGoals } from "@/lib/goals";
+import { requireUserId } from "@/lib/session";
 
 export default async function GoalsPage() {
-  const goals = await listGoals();
+  const userId = await requireUserId();
+  const goals = await listGoals(userId);
 
   return (
     <div>

@@ -94,8 +94,26 @@ a:hover {
 
 .site-nav {
   display: flex;
+  align-items: center;
   gap: var(--space-4);
   font-size: 0.9rem;
+}
+
+.site-nav-user {
+  color: var(--muted);
+}
+
+.site-nav form button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.site-nav form button:hover {
+  color: var(--accent);
 }
 
 .site-nav a {

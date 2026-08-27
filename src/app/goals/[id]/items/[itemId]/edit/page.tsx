@@ -4,12 +4,14 @@ import { getReadingItem } from "@/lib/readingItems";
 import { ITEM_TYPES } from "@/lib/locationLabel";
 import { SubmitButton } from "@/app/submit-button";
 import { updateReadingItemAction } from "./actions";
+import { requireUserId } from "@/lib/session";
 
 export default async function EditReadingItemPage(
   props: PageProps<"/goals/[id]/items/[itemId]/edit">,
 ) {
+  const userId = await requireUserId();
   const { id, itemId } = await props.params;
-  const item = await getReadingItem(itemId);
+  const item = await getReadingItem(itemId, userId);
 
   if (!item || item.goalId !== id) {
     notFound();

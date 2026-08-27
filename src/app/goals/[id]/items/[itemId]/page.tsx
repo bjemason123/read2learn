@@ -4,19 +4,21 @@ import { getNotesForItem } from "@/lib/notes";
 import { listQuestionsForGoal } from "@/lib/questions";
 import { getReadingItem } from "@/lib/readingItems";
 import { NotesPanel } from "./notes-panel";
+import { requireUserId } from "@/lib/session";
 
 export default async function ReadingItemDetailPage(
   props: PageProps<"/goals/[id]/items/[itemId]">,
 ) {
+  const userId = await requireUserId();
   const { id, itemId } = await props.params;
-  const item = await getReadingItem(itemId);
+  const item = await getReadingItem(itemId, userId);
 
   if (!item || item.goalId !== id) {
     notFound();
   }
 
-  const notes = await getNotesForItem(item.id);
-  const questions = await listQuestionsForGoal(id);
+  const notes = await getNotesForItem(item.id, userId);
+  const questions = await listQuestionsForGoal(id, userId);
 
   return (
     <div>

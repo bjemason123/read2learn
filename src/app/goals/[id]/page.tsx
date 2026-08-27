@@ -20,16 +20,18 @@ import { ProgressSelect } from "./progress-select";
 import { SubmitButton } from "@/app/submit-button";
 import { recordEvent } from "@/lib/events";
 import { ITEM_TYPES } from "@/lib/locationLabel";
+import { requireUserId } from "@/lib/session";
 
 export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
+  const userId = await requireUserId();
   const { id } = await props.params;
-  const goal = await getGoal(id);
+  const goal = await getGoal(id, userId);
 
   if (!goal) {
     notFound();
   }
 
-  await recordEvent({ type: "goal_viewed", goalId: goal.id });
+  await recordEvent({ type: "goal_viewed", goalId: goal.id, userId });
 
   const updateGoalWithId = updateGoalAction.bind(null, goal.id);
   const deleteGoalWithId = deleteGoalAction.bind(null, goal.id);

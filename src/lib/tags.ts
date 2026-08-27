@@ -5,8 +5,12 @@ export function normalizeTagName(raw: string): string | null {
   return collapsed.length > 0 ? collapsed : null;
 }
 
-async function pruneOrphanTags() {
-  const orphans = await prisma.tag.findMany({ where: { notes: { none: {} } } });
+// Scoped to one user so pruning never touches another user's tags — an orphan
+// for this user may still be in use by someone else's notes.
+async function pruneOrphanTags(userId: string) {
+  const orphans = await prisma.tag.findMany({
+    where: { userId, notes: { none: {} } },
+  });
   if (orphans.length > 0) {
     await prisma.tag.deleteMany({
       where: { id: { in: orphans.map((tag) => tag.id) } },
@@ -14,7 +18,11 @@ async function pruneOrphanTags() {
   }
 }
 
-export async function syncNoteTags(noteId: string, names: string[]) {
+export async function syncNoteTags(
+  noteId: string,
+  userId: string,
+  names: string[],
+) {
   const normalized = [
     ...new Set(
       names.map(normalizeTagName).filter((name): name is string => name !== null),
@@ -26,15 +34,16 @@ export async function syncNoteTags(noteId: string, names: string[]) {
     data: {
       tags: {
         set: [],
+        // Tag names are unique per user now, so two users can both have "rust".
         connectOrCreate: normalized.map((name) => ({
-          where: { name },
-          create: { name },
+          where: { userId_name: { userId, name } },
+          create: { name, userId },
         })),
       },
     },
   });
 
-  await pruneOrphanTags();
+  await pruneOrphanTags(userId);
 }
 
 export { pruneOrphanTags };
