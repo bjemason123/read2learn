@@ -8,6 +8,7 @@ import {
   deleteReadingItem,
   getReadingItem,
   moveReadingItemDown,
+  moveReadingItemToGoal,
   moveReadingItemUp,
   restoreReadingItem,
   updateReadingItem,
@@ -318,6 +319,97 @@ describe("cross-user isolation", () => {
     await expect(moveReadingItemDown(item.id, userId)).rejects.toThrow(
       "Reading item not found",
     );
+  });
+
+  it("moves an item to another goal, appended at the end", async () => {
+    const source = await createGoal({ userId, title: "Learn Rust" });
+    const destination = await createGoal({ userId, title: "Learn Go" });
+    const existing = await createReadingItem({
+      userId,
+      goalId: destination.id,
+      title: "The Go Book",
+    });
+    const item = await createReadingItem({
+      userId,
+      goalId: source.id,
+      title: "The Rust Book",
+    });
+
+    const moved = await moveReadingItemToGoal(item.id, userId, destination.id);
+
+    expect(moved.goalId).toBe(destination.id);
+    expect(moved.position).toBe(existing.position + 1);
+    expect(await prisma.readingItem.count({ where: { goalId: source.id } })).toBe(
+      0,
+    );
+  });
+
+  it("keeps notes attached when an item moves goal", async () => {
+    const source = await createGoal({ userId, title: "Learn Rust" });
+    const destination = await createGoal({ userId, title: "Learn Go" });
+    const item = await createReadingItem({
+      userId,
+      goalId: source.id,
+      title: "The Rust Book",
+    });
+    const note = await prisma.note.create({
+      data: { readingItemId: item.id, body: "ownership rules", order: 0 },
+    });
+
+    await moveReadingItemToGoal(item.id, userId, destination.id);
+
+    const kept = await prisma.note.findUnique({ where: { id: note.id } });
+    expect(kept?.readingItemId).toBe(item.id);
+  });
+
+  it("treats moving an item to its own goal as a no-op", async () => {
+    const goal = await createGoal({ userId, title: "Learn Rust" });
+    const first = await createReadingItem({
+      userId,
+      goalId: goal.id,
+      title: "First",
+    });
+    const second = await createReadingItem({
+      userId,
+      goalId: goal.id,
+      title: "Second",
+    });
+
+    const result = await moveReadingItemToGoal(first.id, userId, goal.id);
+
+    expect(result.position).toBe(first.position);
+    const items = await prisma.readingItem.findMany({
+      where: { goalId: goal.id },
+      orderBy: { position: "asc" },
+    });
+    expect(items.map((i) => i.id)).toEqual([first.id, second.id]);
+  });
+
+  it("refuses to move an item into another user's goal", async () => {
+    const { goal: theirGoal } = await makeOtherUsersItem();
+    const goal = await createGoal({ userId, title: "Learn Rust" });
+    const item = await createReadingItem({
+      userId,
+      goalId: goal.id,
+      title: "The Rust Book",
+    });
+
+    await expect(
+      moveReadingItemToGoal(item.id, userId, theirGoal.id),
+    ).rejects.toThrow("Goal not found");
+    expect(
+      (await prisma.readingItem.findUniqueOrThrow({ where: { id: item.id } }))
+        .goalId,
+    ).toBe(goal.id);
+  });
+
+  it("refuses to move another user's reading item", async () => {
+    const { item } = await makeOtherUsersItem();
+    const goal = await createGoal({ userId, title: "Learn Rust" });
+
+    await expect(
+      moveReadingItemToGoal(item.id, userId, goal.id),
+    ).rejects.toThrow("Reading item not found");
   });
 
   it("refuses to delete another user's reading item", async () => {

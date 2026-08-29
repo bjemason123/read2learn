@@ -6,6 +6,7 @@ import {
   deleteReadingItem,
   deferReadingItem,
   moveReadingItemDown,
+  moveReadingItemToGoal,
   moveReadingItemUp,
   restoreReadingItem,
   updateReadingItemProgress,
@@ -125,6 +126,27 @@ export async function moveReadingItemDownAction(
   });
 
   revalidatePath(`/goals/${goalId}`);
+}
+
+export async function moveReadingItemToGoalAction(
+  itemId: string,
+  goalId: string,
+  newGoalId: string,
+) {
+  const userId = await requireUserId();
+
+  await moveReadingItemToGoal(itemId, userId, newGoalId);
+
+  await recordEvent({
+    type: "reading_item_moved_to_goal",
+    goalId: newGoalId,
+    readingItemId: itemId,
+    userId,
+  });
+
+  // Both pages are cached separately: the item leaves one and joins the other.
+  revalidatePath(`/goals/${goalId}`);
+  revalidatePath(`/goals/${newGoalId}`);
 }
 
 export async function deleteReadingItemAction(itemId: string, goalId: string) {
