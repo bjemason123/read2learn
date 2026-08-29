@@ -12,6 +12,7 @@ import {
   updateGoal,
 } from "@/lib/goals";
 import { createReadingItem } from "@/lib/readingItems";
+import { createNote } from "@/lib/notes";
 
 let userId: string;
 
@@ -198,6 +199,94 @@ describe("cross-user isolation", () => {
     expect(
       await prisma.goal.findUnique({ where: { id: goal.id } }),
     ).toBeNull();
+  });
+});
+
+// The print view renders every note of every reading item, so `getGoal` has to
+// supply them — with tags and linked questions — in the order they were taken.
+describe("getGoal reading item notes", () => {
+  it("includes each reading item's notes with their tags and linked questions", async () => {
+    const goal = await createGoal({
+      userId,
+      title: "Learn Rust",
+      questions: ["What is ownership?"],
+    });
+    const item = await createReadingItem({
+      userId,
+      goalId: goal.id,
+      title: "The Rust Book",
+    });
+    const questionId = (await getGoal(goal.id, userId))!.questions[0].id;
+
+    await createNote({
+      userId,
+      readingItemId: item.id,
+      body: "Ownership moves on assignment",
+      location: "Chapter 4",
+      tags: ["memory"],
+      questionIds: [questionId],
+    });
+
+    const found = await getGoal(goal.id, userId);
+    const notes = found!.readingItems[0].notes;
+
+    expect(notes).toHaveLength(1);
+    expect(notes[0].body).toBe("Ownership moves on assignment");
+    expect(notes[0].location).toBe("Chapter 4");
+    expect(notes[0].tags.map((tag) => tag.name)).toEqual(["memory"]);
+    expect(notes[0].questions.map((q) => q.text)).toEqual([
+      "What is ownership?",
+    ]);
+  });
+
+  it("orders notes by their order field, not by insertion", async () => {
+    const goal = await createGoal({ userId, title: "Learn Rust" });
+    const item = await createReadingItem({
+      userId,
+      goalId: goal.id,
+      title: "The Rust Book",
+    });
+
+    const first = await createNote({ userId, readingItemId: item.id, body: "a" });
+    const second = await createNote({ userId, readingItemId: item.id, body: "b" });
+
+    // Swap the stored order so insertion order and `order` disagree.
+    await prisma.note.update({ where: { id: first.id }, data: { order: 10 } });
+    await prisma.note.update({ where: { id: second.id }, data: { order: 0 } });
+
+    const found = await getGoal(goal.id, userId);
+    expect(found!.readingItems[0].notes.map((n) => n.body)).toEqual(["b", "a"]);
+  });
+
+  it("returns an empty notes array for a reading item with no notes", async () => {
+    const goal = await createGoal({ userId, title: "Learn Rust" });
+    await createReadingItem({ userId, goalId: goal.id, title: "The Rust Book" });
+
+    const found = await getGoal(goal.id, userId);
+    expect(found!.readingItems[0].notes).toEqual([]);
+  });
+
+  it("carries the structured notes through groupReadingItemsForPrint", async () => {
+    const goal = await createGoal({ userId, title: "Learn Rust" });
+    const item = await createReadingItem({
+      userId,
+      goalId: goal.id,
+      title: "The Rust Book",
+    });
+    await createNote({
+      userId,
+      readingItemId: item.id,
+      body: "Borrowing is temporary",
+      tags: ["memory"],
+    });
+
+    const found = await getGoal(goal.id, userId);
+    const groups = groupReadingItemsForPrint(found!.readingItems);
+
+    expect(groups).toHaveLength(1);
+    const printed = groups[0].items[0];
+    expect(printed.notes.map((n) => n.body)).toEqual(["Borrowing is temporary"]);
+    expect(printed.notes[0].tags.map((t) => t.name)).toEqual(["memory"]);
   });
 });
 

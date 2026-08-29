@@ -440,6 +440,48 @@ button.primary:disabled:hover {
   word-break: break-all;
 }
 
+.print-note-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+
+.print-note {
+  border-left: 2px solid var(--border);
+  padding-left: var(--space-3);
+}
+
+.print-note .print-note-location {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.print-note .print-note-body {
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+}
+
+.print-note .print-note-tags {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.print-note-questions {
+  list-style: none;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.print-note-questions li::before {
+  content: "Answers: ";
+}
+
 @media print {
   .site-header,
   .print-button {
@@ -470,14 +512,30 @@ button.primary:disabled:hover {
   .print-item .print-item-author,
   .print-item .print-item-progress,
   .print-item .print-item-url,
-  .print-item .print-item-note {
+  .print-item .print-item-note,
+  .print-note .print-note-location,
+  .print-note .print-note-body,
+  .print-note .print-note-tags,
+  .print-note-questions {
     color: #000000;
   }
 
+  /* An item now carries all its notes, so it can legitimately run past one
+     page — forcing `break-inside: avoid` here would clip it. Keep individual
+     notes intact instead, and keep the title with the notes that follow it. */
   .print-item {
     background: #ffffff;
     border-color: #cccccc;
+    break-inside: auto;
+  }
+
+  .print-item .print-item-title {
+    break-after: avoid;
+  }
+
+  .print-note {
     break-inside: avoid;
+    border-left-color: #cccccc;
   }
 
   @page {
