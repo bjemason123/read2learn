@@ -18,6 +18,7 @@ import { createGoal } from "@/lib/goals";
 import { createReadingItem } from "@/lib/readingItems";
 import {
   moveReadingItemDownAction,
+  moveReadingItemToGoalAction,
   moveReadingItemUpAction,
 } from "./actions";
 
@@ -72,5 +73,27 @@ describe("reading item move actions", () => {
       where: { type: "reading_item_moved_down", readingItemId: first.id },
     });
     expect(event).not.toBeNull();
+  });
+
+  it("moves an item to another goal and records an event", async () => {
+    const source = await createGoal({ userId, title: "Learn Rust" });
+    const destination = await createGoal({ userId, title: "Learn Go" });
+    const item = await createReadingItem({
+      userId,
+      goalId: source.id,
+      title: "The Rust Book",
+    });
+
+    await moveReadingItemToGoalAction(item.id, source.id, destination.id);
+
+    const moved = await prisma.readingItem.findUnique({
+      where: { id: item.id },
+    });
+    expect(moved?.goalId).toBe(destination.id);
+
+    const event = await prisma.event.findFirst({
+      where: { type: "reading_item_moved_to_goal", readingItemId: item.id },
+    });
+    expect(event?.goalId).toBe(destination.id);
   });
 });

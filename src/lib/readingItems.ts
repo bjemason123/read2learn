@@ -127,6 +127,34 @@ async function moveReadingItem(
   });
 }
 
+// Reassigns an item to another goal the same user owns. The item is appended
+// to the end of the destination goal's list, the same way `createReadingItem`
+// picks a position for a brand new item.
+export async function moveReadingItemToGoal(
+  id: string,
+  userId: string,
+  newGoalId: string,
+) {
+  const item = await requireReadingItemOwner(id, userId);
+  await requireGoalOwner(newGoalId, userId);
+
+  // Re-appending an item to its own list would silently reorder it.
+  if (item.goalId === newGoalId) {
+    return item;
+  }
+
+  const maxPosition = await prisma.readingItem.aggregate({
+    where: { goalId: newGoalId },
+    _max: { position: true },
+  });
+  const position = (maxPosition._max.position ?? -1) + 1;
+
+  return prisma.readingItem.update({
+    where: { id },
+    data: { goalId: newGoalId, position },
+  });
+}
+
 export async function updateReadingItem(
   id: string,
   userId: string,

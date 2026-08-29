@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getGoal } from "@/lib/goals";
+import { getGoal, listGoals } from "@/lib/goals";
 import {
   addQuestionAction,
   deleteGoalAction,
@@ -15,6 +15,7 @@ import {
   moveReadingItemUpAction,
   restoreReadingItemAction,
 } from "./actions";
+import { GoalSelect } from "./goal-select";
 import { ItemTitle } from "./item-title";
 import { ProgressSelect } from "./progress-select";
 import { SubmitButton } from "@/app/submit-button";
@@ -32,6 +33,12 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
   }
 
   await recordEvent({ type: "goal_viewed", goalId: goal.id, userId });
+
+  // Only id/title reach the client component — `listGoals` also includes each
+  // goal's reading items, which the dropdown has no use for.
+  const otherGoals = (await listGoals(userId))
+    .filter((other) => other.id !== goal.id)
+    .map((other) => ({ id: other.id, title: other.title }));
 
   const updateGoalWithId = updateGoalAction.bind(null, goal.id);
   const deleteGoalWithId = deleteGoalAction.bind(null, goal.id);
@@ -156,6 +163,11 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                 goalId={goal.id}
                 progress={item.progress}
               />
+              <GoalSelect
+                itemId={item.id}
+                goalId={goal.id}
+                otherGoals={otherGoals}
+              />
               <form
                 className="inline"
                 action={moveReadingItemUpAction.bind(null, item.id, goal.id)}
@@ -207,6 +219,11 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                 )}
                 <span className="badge">{item.type.toLowerCase()}</span>
                 <span className="badge">Deferred</span>
+                <GoalSelect
+                  itemId={item.id}
+                  goalId={goal.id}
+                  otherGoals={otherGoals}
+                />
                 <Link href={`/goals/${goal.id}/items/${item.id}`}>Notes</Link>
                 <Link href={`/goals/${goal.id}/items/${item.id}/edit`}>
                   Edit
