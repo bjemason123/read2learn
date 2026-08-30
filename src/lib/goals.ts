@@ -15,6 +15,14 @@ export function getGoal(id: string, userId: string) {
     include: {
       readingItems: {
         orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+        // The print view renders each item's full notes, so the tags and the
+        // questions a note answers come along rather than being fetched per note.
+        include: {
+          notes: {
+            orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+            include: { tags: true, questions: true },
+          },
+        },
       },
       questions: {
         orderBy: { order: "asc" },
@@ -110,6 +118,25 @@ export const PRINT_GROUP_LABELS = {
 
 export type PrintGroupKey = keyof typeof PRINT_GROUP_LABELS;
 
+// The note shape the print view renders. Structural, not the generated Prisma
+// model, so `groupReadingItemsForPrint` stays usable with plain test fixtures.
+export type PrintNote = {
+  id: string;
+  body: string;
+  location: string | null;
+  order: number;
+  tags: { id: string; name: string }[];
+  questions: { id: string; text: string }[];
+};
+
+export type PrintReadingItem = {
+  progress: Progress;
+  deferred: boolean;
+  notes: PrintNote[];
+};
+
+// Generic in the item so the whole row — including its `notes` — is carried
+// through to the print view model unchanged; only `progress`/`deferred` are read.
 export function groupReadingItemsForPrint<
   T extends { progress: Progress; deferred: boolean },
 >(items: T[]): { key: PrintGroupKey; label: string; items: T[] }[] {

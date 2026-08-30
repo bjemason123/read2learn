@@ -54,6 +54,34 @@ export default async function GoalPrintPage(
                 </div>
                 {item.url && <div className="print-item-url">{item.url}</div>}
                 {item.note && <div className="print-item-note">{item.note}</div>}
+                {item.notes.length > 0 && (
+                  // Already ordered by `order` in `getGoal`, so the notes print
+                  // in the sequence they were taken.
+                  <ul className="print-note-list">
+                    {item.notes.map((note) => (
+                      <li key={note.id} className="print-note">
+                        {note.location && (
+                          <div className="print-note-location">
+                            {note.location}
+                          </div>
+                        )}
+                        <div className="print-note-body">{note.body}</div>
+                        {note.tags.length > 0 && (
+                          <div className="print-note-tags">
+                            {note.tags.map((tag) => tag.name).join(", ")}
+                          </div>
+                        )}
+                        {note.questions.length > 0 && (
+                          <ul className="print-note-questions">
+                            {note.questions.map((question) => (
+                              <li key={question.id}>{question.text}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
