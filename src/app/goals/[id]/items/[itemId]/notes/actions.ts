@@ -94,8 +94,11 @@ export async function updateNoteAction(
   }
 }
 
-// Takes no `prevState`/`formData`: there is nothing to parse, so the client
-// wraps it in a zero-arg closure for `useActionState`.
+// There is nothing in the form to parse, so this takes no `prevState`/`formData`.
+// It is still bound with `.bind(null, ...)` on the client (not wrapped in a
+// client closure), so the delete form works through progressive enhancement —
+// before hydration and without JS — exactly like the edit form. React appends
+// the `prevState`/`formData` args at runtime; JS harmlessly ignores them.
 export async function deleteNoteAction(
   noteId: string,
   readingItemId: string,
@@ -113,6 +116,9 @@ export async function deleteNoteAction(
 
     return { ok: true };
   } catch (err) {
+    // The catch-all otherwise discards the real cause; log it server-side so a
+    // future "delete not working" report is diagnosable from the logs.
+    console.error("deleteNoteAction failed", err);
     return { error: errorMessage(err, "Failed to delete note") };
   }
 }
