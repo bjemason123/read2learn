@@ -36,7 +36,7 @@ export function NoteItem({
     INITIAL,
   );
   const [deleteState, deleteAction] = useActionState(
-    () => deleteNoteAction(note.id, itemId, goalId),
+    deleteNoteAction.bind(null, note.id, itemId, goalId),
     INITIAL,
   );
 
