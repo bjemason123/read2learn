@@ -36,6 +36,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             {session ? (
               <>
                 <Link href="/goals">My goals</Link>
+                <Link href="/graph">Concept graph</Link>
                 <span className="site-nav-user">{session.email}</span>
                 <form action={logoutAction}>
                   <button type="submit">Log out</button>
