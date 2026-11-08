@@ -8,6 +8,7 @@ import {
   deleteQuestion,
   listQuestionsForGoal,
   syncNoteQuestions,
+  updateQuestion,
 } from "@/lib/questions";
 import { createReadingItem } from "@/lib/readingItems";
 
@@ -87,6 +88,48 @@ describe("listQuestionsForGoal", () => {
     const goal = await makeGoal();
 
     expect(await listQuestionsForGoal(goal.id, userId)).toEqual([]);
+  });
+});
+
+describe("updateQuestion", () => {
+  it("rewords the question in place, keeping its order", async () => {
+    const goal = await makeGoal(["What is ownership?", "What is borrowing?"]);
+    const [first] = await listQuestionsForGoal(goal.id, userId);
+
+    await updateQuestion(first.id, userId, "  How does ownership work?  ");
+
+    expect((await listQuestionsForGoal(goal.id, userId)).map((q) => q.text)).toEqual([
+      "How does ownership work?",
+      "What is borrowing?",
+    ]);
+  });
+
+  it("keeps the notes that answer the question linked", async () => {
+    const goal = await makeGoal(["What is ownership?"]);
+    const item = await makeItem(goal.id);
+    const [question] = await listQuestionsForGoal(goal.id, userId);
+    const note = await createNote({ userId,
+      readingItemId: item.id,
+      body: "Move semantics",
+      questionIds: [question.id],
+    });
+
+    await updateQuestion(question.id, userId, "How does ownership work?");
+
+    const found = await getGoal(goal.id, userId);
+    expect(found?.questions[0].notes.map((n) => n.id)).toEqual([note.id]);
+  });
+
+  it("rejects blank text, leaving the question unchanged", async () => {
+    const goal = await makeGoal(["What is ownership?"]);
+    const [question] = await listQuestionsForGoal(goal.id, userId);
+
+    await expect(updateQuestion(question.id, userId, "  ")).rejects.toThrow(
+      "Question text is required",
+    );
+    expect((await listQuestionsForGoal(goal.id, userId))[0].text).toBe(
+      "What is ownership?",
+    );
   });
 });
 
@@ -257,6 +300,17 @@ describe("cross-user isolation", () => {
 
     expect(await listQuestionsForGoal(goal.id, userId)).toEqual([]);
     expect(await listQuestionsForGoal(goal.id, otherUserId)).toHaveLength(1);
+  });
+
+  it("refuses to edit another user's question", async () => {
+    const { question } = await makeOtherUsersQuestion();
+
+    await expect(
+      updateQuestion(question.id, userId, "Sneaky?"),
+    ).rejects.toThrow("Question not found");
+    expect(
+      (await prisma.question.findUnique({ where: { id: question.id } }))?.text,
+    ).toBe("What is ownership?");
   });
 
   it("refuses to delete another user's question", async () => {
