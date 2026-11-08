@@ -48,6 +48,23 @@ export function listQuestionsForGoal(goalId: string, userId: string) {
   });
 }
 
+export async function updateQuestion(
+  id: string,
+  userId: string,
+  text: string,
+) {
+  if (!text.trim()) {
+    throw new Error("Question text is required");
+  }
+
+  await requireQuestionOwner(id, userId);
+
+  return prisma.question.update({
+    where: { id },
+    data: { text: text.trim() },
+  });
+}
+
 export async function deleteQuestion(id: string, userId: string) {
   await requireQuestionOwner(id, userId);
 

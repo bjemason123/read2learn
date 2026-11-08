@@ -233,6 +233,14 @@ h2 {
   color: var(--muted);
 }
 
+.item-row .question-edit summary {
+  cursor: pointer;
+}
+
+.item-row .question-edit[open] {
+  flex-basis: 100%;
+}
+
 .item-row .item-note {
   flex-basis: 100%;
   font-size: 0.85rem;

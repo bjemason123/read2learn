@@ -6,6 +6,7 @@ import {
   deleteGoalAction,
   deleteQuestionAction,
   updateGoalAction,
+  updateQuestionAction,
 } from "@/app/goals/actions";
 import {
   createReadingItemAction,
@@ -121,6 +122,32 @@ export default async function GoalDetailPage(props: PageProps<"/goals/[id]">) {
                     ))}
                   </ul>
                 )}
+                {/* Keyed on the text so a saved edit remounts the element
+                    closed, rather than leaving the stale editor open. */}
+                <details key={question.text} className="question-edit">
+                  <summary>Edit</summary>
+                  <form
+                    action={updateQuestionAction.bind(
+                      null,
+                      goal.id,
+                      question.id,
+                    )}
+                  >
+                    <div className="field">
+                      <label htmlFor={`question-${question.id}`}>Question</label>
+                      <input
+                        id={`question-${question.id}`}
+                        name="question"
+                        type="text"
+                        defaultValue={question.text}
+                        required
+                      />
+                    </div>
+                    <SubmitButton className="primary" pendingLabel="Saving…">
+                      Save question
+                    </SubmitButton>
+                  </form>
+                </details>
                 <form
                   className="inline"
                   action={deleteQuestionAction.bind(null, goal.id, question.id)}
